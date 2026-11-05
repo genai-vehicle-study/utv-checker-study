@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "date": "2026-11-05",
+  "features": {
+    "angleOverlay": true,
+    "zoneLabels": true,
+    "rangeHighlight": true,
+    "widthMeasure": true,
+    "copyText": true,
+    "wheelPrompt": true
+  }
+}

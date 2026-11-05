@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UTV 比例比對工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: 左側參數欄 + 右側固定的 3D 檢視台（檢視器下方為分頁：檢查／尺寸／疊圖／匯出／紀錄） */
+:root{
+  --bg:#e8eaec; --panel:#f5f6f7; --raise:#ffffff; --ink:#15191e; --muted:#5a636e; --line:#cdd2d8;
+  --accent:#1c5d87; --accent-ink:#ffffff; --accent-soft:#dbe8f1;
+  --stage:#dde1e5; --grid:#b5bcc4; --grid-major:#8f98a2; --clay:#b9a386; --figure:#1c5d87;
+  --ok:#2c7a4b; --warn:#a86c12; --fail:#b3362d; --info:#5a636e;
+  --f-display:"Archivo","Noto Sans TC",system-ui,sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131619; --panel:#1b1f23; --raise:#22272c; --ink:#e6e9ed; --muted:#98a1ab; --line:#2f363d;
+    --accent:#72b4de; --accent-ink:#0b1822; --accent-soft:#1d3444;
+    --stage:#181c20; --grid:#2c3238; --grid-major:#434b54; --clay:#a8947a; --figure:#72b4de;
+    --ok:#5ec48c; --warn:#e2aa4c; --fail:#f0736a; --info:#98a1ab; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131619; --panel:#1b1f23; --raise:#22272c; --ink:#e6e9ed; --muted:#98a1ab; --line:#2f363d;
+  --accent:#72b4de; --accent-ink:#0b1822; --accent-soft:#1d3444;
+  --stage:#181c20; --grid:#2c3238; --grid-major:#434b54; --clay:#a8947a; --figure:#72b4de;
+  --ok:#5ec48c; --warn:#e2aa4c; --fail:#f0736a; --info:#98a1ab; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:0 16px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;padding-block:14px 12px}
+.brand h1{font-family:var(--f-display);font-stretch:78%;font-weight:750;font-size:26px;letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.presets span{font-size:12px;color:var(--muted);letter-spacing:.06em;margin-right:4px}
+.chip{border:1px solid var(--line);background:var(--raise);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+main{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:16px;align-items:start}
+aside.controls{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 16px 16px;min-width:0}
+.group{display:grid;gap:10px;padding-top:14px}
+.group h2{font-family:var(--f-display);font-stretch:80%;font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.row label{font-size:13.5px;font-weight:500}
+.row .hint{grid-column:1/-1;font-size:11.5px;color:var(--muted);margin-top:-2px}
+.num{display:flex;align-items:baseline;gap:4px}
+.num input{width:74px;text-align:right;font-family:var(--f-mono);font-size:13px;background:var(--raise);border:1px solid var(--line);border-radius:5px;padding:2px 6px;font-variant-numeric:tabular-nums}
+.num em{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--muted);width:22px}
+.row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:0}
+.seg{grid-column:1/-1;display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--raise)}
+.seg button{flex:1;border:0;background:transparent;padding:6px 4px;cursor:pointer;font-size:13px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;cursor:pointer}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+
+.bench{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;flex-direction:column;gap:10px;height:calc(100vh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-width:0}
+.stage{position:relative;flex:1 1 auto;min-height:320px;border-radius:10px;overflow:hidden;background:var(--stage);border:1px solid var(--line)}
+.stage canvas{display:block;width:100%;height:100%}
+#ov{position:absolute;left:0;top:0;max-width:none;pointer-events:none;transform-origin:0 0;z-index:1}
+#ovpick{position:absolute;inset:0;z-index:3;cursor:crosshair}
+.ovdot{position:absolute;z-index:4;width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid #d62828;border-radius:50%;pointer-events:none;background:rgba(214,40,40,.25)}
+.views{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;z-index:2}
+.views button{border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:4px 10px;font-size:12.5px;cursor:pointer}
+.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.readout{position:absolute;right:10px;bottom:10px;z-index:2;display:flex;gap:14px;font-family:var(--f-mono);font-size:12px;background:color-mix(in srgb,var(--raise) 86%,transparent);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.readout b{font-weight:500}
+.readout span{color:var(--muted)}
+.bandlegend{position:absolute;left:10px;bottom:10px;z-index:4;max-width:min(520px,calc(100% - 20px));font-size:12px;line-height:1.45;background:color-mix(in srgb,var(--raise) 90%,transparent);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+.bandlegend i{display:inline-block;width:12px;height:12px;background:rgba(31,157,85,.35);border:1px solid #1f9d55;margin-right:6px;vertical-align:-1px}
+.statusdot{position:absolute;left:10px;bottom:10px;z-index:2;font-size:12px;background:color-mix(in srgb,var(--raise) 86%,transparent);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+
+.tabs{flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:40%;min-height:0}
+.tablist{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:6px 8px 0;overflow-x:auto}
+.tablist button{border:0;background:transparent;padding:7px 12px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;color:var(--muted)}
+.tablist button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
+.tablist .count{font-family:var(--f-mono);font-size:11px;margin-left:4px;padding:0 5px;border-radius:8px;background:var(--line);color:var(--ink)}
+.tablist .count.bad{background:var(--fail);color:#fff}
+.tablist .count.meh{background:var(--warn);color:#fff}
+.panel{padding:12px 14px;overflow:auto;min-height:0}
+
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.checks li{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start}
+.pill{font-size:11.5px;text-align:center;border-radius:4px;padding:1px 0;font-weight:500;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)} .pill.fail{color:var(--fail);background:color-mix(in srgb,var(--fail) 12%,transparent)} .pill.info{color:var(--info)}
+.checks b{font-weight:500}
+.checks p{margin:1px 0 0;color:var(--muted);font-size:12.5px}
+.src{font-size:11.5px;color:var(--muted);margin-top:10px}
+
+.dims{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 18px;margin:0}
+.dims div{border-top:1px solid var(--line);padding-top:6px}
+.dims dt{font-size:12px;color:var(--muted)}
+.dims dd{margin:0;font-family:var(--f-mono);font-size:16px;font-variant-numeric:tabular-nums}
+.dims dd small{font-size:11px;color:var(--muted)}
+
+.form{display:grid;gap:10px;max-width:640px}
+.form .line{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.form label{font-size:13px}
+.form input[type=range]{accent-color:var(--accent);flex:1;min-width:120px}
+.btn{border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:hover{border-color:var(--accent)}
+textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:12px;background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:8px}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+ol.steps{margin:0;padding-left:20px;font-size:13px;display:grid;gap:4px}
+code{font-family:var(--f-mono);font-size:12px;background:var(--accent-soft);padding:0 4px;border-radius:3px}
+.log{font-family:var(--f-mono);font-size:12px;border-collapse:collapse;width:100%}
+.log td,.log th{text-align:left;padding:3px 8px 3px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+.log th{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:12px}
+.tablewrap{overflow-x:auto}
+
+@media (max-width: 900px){
+  main{grid-template-columns:minmax(0,1fr)}
+  .bench{position:static;height:auto;order:-1}
+  .stage{height:56vh;flex:none}
+  .tabs{max-height:none}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>UTV 比例比對工具</h1>
+    <p>把你的正側視定稿疊在參考模型上，檢查比例是否合理。參考模型依 Polaris RZR XP 4 1000 原廠規格建立，乘員身高 185 cm。</p>
+  </div>
+  <div class="presets" id="presets"><span>範例</span></div>
+</header>
+
+<main>
+  <aside class="controls" id="controls" aria-label="參數"></aside>
+
+  <section class="bench">
+    <div class="stage" id="stage">
+      <div class="views" id="views">
+        <button data-v="3q">透視</button>
+        <button data-v="side" aria-pressed="true">側視</button>
+        <button data-v="front">前視</button>
+        <button data-v="top">上視</button>
+      </div>
+      <img id="ov" alt="" hidden>
+      <div id="ovpick" hidden></div>
+      <div class="readout" id="readout"></div>
+      <div class="bandlegend" id="bandlegend" hidden><i></i>綠色區塊：四款市售 64 吋級四人座 UTV 的比例範圍。後輪中心、車頂、車頭與車尾應落在對應區塊內。</div>
+      <div class="statusdot" id="loadmsg">載入 3D 引擎中…</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tablist" role="tablist" id="tablist">
+        <button role="tab" data-t="overlay" aria-selected="true">疊圖比對</button>
+        <button role="tab" data-t="checks" aria-selected="false">比例結果<span class="count" id="chkcount">0</span></button>
+        <button role="tab" data-t="dims" aria-selected="false" hidden>尺寸</button>
+        <button role="tab" data-t="export" aria-selected="false" hidden>匯出 GH</button>
+        <button role="tab" data-t="log" aria-selected="false" hidden>研究紀錄<span class="count" id="logcount">0</span></button>
+      </div>
+
+      <div class="panel" data-p="checks" hidden>
+        <ul class="checks" id="checks"></ul>
+        <p class="src">參考模型依 Polaris RZR XP 4 1000（2027）原廠規格：全長 3,754、全寬 1,626、全高 1,905、軸距 2,972、離地高 368、輪胎 762 mm。比例範圍取全寬 64 吋以內的四人座車款：RZR XP 4 1000、Honda Talon 1000X-4、Can-Am Maverick Sport MAX、Polaris General XP 4 1000。UTV 沒有規定比例的法規，範圍只用於比較；六輪範圍為推估。</p>
+      </div>
+
+      <div class="panel" data-p="dims" hidden>
+        <dl class="dims" id="dims"></dl>
+      </div>
+
+      <div class="panel" data-p="overlay">
+        <div class="form">
+          <p class="note">載入 AI 生成的正側視圖，疊在模型側視上比對比例。步驟：① 載入圖片 ② 按「兩點對齊輪心」，依序點圖上的<b>前輪中心</b>與<b>最後一個車輪中心</b> ③ 調整左側「輪徑」（六輪再調「雙軸間距」），讓模型輪子跟圖上的輪子重疊，畫面上的綠色區塊會依輪徑標出市售車的比例範圍 ④（選擇性）按「量通過角」，點車頭與車尾最低點 ⑤ 到「比例結果」看數值。</p>
+          <div class="line"><input type="file" id="ovfile" accept="image/*"><button class="btn primary" id="ovalign">兩點對齊輪心</button><button class="btn" id="ovangle">量通過角</button><button class="btn" id="ovclear">移除圖片</button></div>
+          <p class="note" id="ovmsg" role="status"></p>
+          <div class="line"><label for="ovop">透明度</label><input type="range" id="ovop" min="0" max="1" step="0.01" value="0.5"></div>
+          <div class="line"><label for="ovsc">微調縮放</label><input type="range" id="ovsc" min="0.5" max="2" step="0.005" value="1"></div>
+          <div class="line"><label for="ovx">微調左右</label><input type="range" id="ovx" min="-25" max="25" step="0.1" value="0"></div>
+          <div class="line"><label for="ovy">微調上下</label><input type="range" id="ovy" min="-25" max="25" step="0.1" value="0"></div>
+          <label class="toggle"><input type="checkbox" id="ovflip"> 水平翻轉（車頭朝右的圖）</label>
+          <label class="toggle"><input type="checkbox" id="bandon" checked> 顯示比例範圍（綠色區塊，只在側視顯示）</label>
+        </div>
+      </div>
+
+      <div class="panel" data-p="export" hidden>
+        <div class="form">
+          <div class="line">
+            <button class="btn primary" id="cpjson">複製參數 JSON</button>
+            <button class="btn" id="cpgh">複製 GH Python 腳本</button>
+          </div>
+          <ol class="steps">
+            <li>在 Grasshopper 放一個 Python 元件（Rhino 8 用 Python 3 Script，Rhino 7 用 GhPython），貼上腳本。</li>
+            <li>新增輸入 <code>params_json</code>（型別 str），接一個 Panel，把複製的 JSON 貼進 Panel。</li>
+            <li>新增輸出 <code>body</code> <code>canopy</code> <code>wheels</code> <code>figure</code> <code>profile</code> <code>info</code>。</li>
+            <li>想在 GH 裡用滑桿調：新增與參數同名的輸入（如 <code>wheelbase</code>、<code>wheelCount</code>），接 Number Slider，會覆蓋 JSON 的值。</li>
+          </ol>
+          <label for="jsonin">套用 JSON（從 GH 或別的受試者紀錄貼回來）</label>
+          <textarea id="jsonin" placeholder='{"wheelCount":4,"wheelbase":1580, ...}'></textarea>
+          <div class="line"><button class="btn" id="applyjson">套用</button><span class="note" id="jsonmsg"></span></div>
+          <textarea id="fallback" hidden readonly aria-label="手動複製區"></textarea>
+        </div>
+      </div>
+
+      <div class="panel" data-p="log" hidden>
+        <div class="form">
+          <div class="line">
+            <label for="pid">受試者</label><input id="pid" value="P01" style="width:80px" class="btn">
+            <label for="phase">階段</label><input id="phase" value="任務一" style="width:120px" class="btn">
+            <button class="btn primary" id="cplog">複製紀錄 CSV</button>
+            <button class="btn" id="clrlog">清空</button>
+          </div>
+          <p class="note">每次放開滑桿、切換選項或套用範例都會記一筆（時間、參數、前值、後值）。紀錄只存在這個分頁裡，重新整理就會消失，每位受試者結束後請先複製出來。</p>
+          <div class="tablewrap"><table class="log"><thead><tr><th>時間</th><th>受試者</th><th>階段</th><th>參數</th><th>前</th><th>後</th></tr></thead><tbody id="logbody"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const GH_SCRIPT = "# -*- coding: utf-8 -*-\n\"\"\"\n載具比例參數台 · Grasshopper 參數化載具量體\n適用：Rhino 7 GhPython 元件、Rhino 8 Python 3 Script 元件。單位：mm。\n座標：X = 車長方向（前軸在 X=0，往車尾為正），Y = 車寬方向，Z = 高度（地面 Z=0）。\n\n輸入 Inputs（全部選填；沒有接線的沿用預設值）\n  params_json : str  從網頁「匯出」分頁複製的參數 JSON，接一個 Panel 貼上即可\n  也可以另外新增與參數同名的輸入並接 Number Slider，優先順序：\n  個別輸入 > params_json > 預設值\n  可用的參數名稱：\n    wheelCount (2/3/4/6)   layout3 (\"tadpole\"/\"delta\")   layout6 (\"front\"/\"rear\")\n    wheelbase  axleGap  trackF  trackR  wheelD  tireW\n    ohF  ohR  bodyW  belt  clear  nose (0-1)\n    cabin (\"closed\"/\"open\"/\"rider\")  cabinPos (0-1)  cabinLen (0-1)\n    roof  seatH  sitH\n\n輸出 Outputs（請在元件上建立同名輸出）\n  body     車身量體 Brep\n  canopy   座艙玻璃（封閉）或防滾架（開放）Brep 清單\n  wheels   輪胎 Brep 清單\n  figure   乘員人偶 Brep 清單（人體比例參考）\n  profile  車身側視輪廓曲線（可拿去與 AI 生成圖比對）\n  info     尺寸摘要文字\n\"\"\"\nimport json\nimport math\nimport Rhino.Geometry as rg\n\ntry:\n    import scriptcontext as sc\n    TOL = sc.doc.ModelAbsoluteTolerance\nexcept Exception:\n    TOL = 0.01\n\nDEFAULTS = {\n    \"wheelCount\": 4, \"layout3\": \"tadpole\", \"layout6\": \"front\",\n    \"wheelbase\": 2750.0, \"axleGap\": 900.0, \"trackF\": 1570.0, \"trackR\": 1580.0,\n    \"wheelD\": 660.0, \"tireW\": 225.0,\n    \"ohF\": 950.0, \"ohR\": 1050.0, \"bodyW\": 1830.0, \"belt\": 1000.0, \"clear\": 140.0, \"nose\": 0.55,\n    \"cabin\": \"closed\", \"cabinPos\": 0.5, \"cabinLen\": 0.45, \"roof\": 1450.0,\n    \"seatH\": 450.0, \"sitH\": 930.0,\n}\nTEXT_KEYS = (\"layout3\", \"layout6\", \"cabin\")\nARCH_GAP = 40.0  # 輪拱與輪胎的間隙\n\n\ndef read_params():\n    p = dict(DEFAULTS)\n    g = globals()\n    js = g.get(\"params_json\")\n    if js:\n        try:\n            p.update(json.loads(str(js)))\n        except Exception as e:\n            raise ValueError(u\"params_json 無法解析：{0}\".format(e))\n    for k in DEFAULTS:\n        v = g.get(k)\n        if v is not None:\n            p[k] = v\n    for k in DEFAULTS:\n        if k in TEXT_KEYS:\n            p[k] = str(p[k])\n        elif k == \"wheelCount\":\n            p[k] = int(p[k])\n        else:\n            p[k] = float(p[k])\n    return p\n\n\ndef axles_of(p):\n    wc, wb = p[\"wheelCount\"], p[\"wheelbase\"]\n\n    def pair(t):\n        return [-t / 2.0, t / 2.0]\n\n    if wc == 2:\n        return [(0.0, [0.0]), (wb, [0.0])]\n    if wc == 3:\n        if p[\"layout3\"] == \"tadpole\":\n            return [(0.0, pair(p[\"trackF\"])), (wb, [0.0])]\n        return [(0.0, [0.0]), (wb, pair(p[\"trackR\"]))]\n    if wc == 4:\n        return [(0.0, pair(p[\"trackF\"])), (wb, pair(p[\"trackR\"]))]\n    if p[\"layout6\"] == \"front\":\n        return [(0.0, pair(p[\"trackF\"])), (p[\"axleGap\"], pair(p[\"trackF\"])), (wb, pair(p[\"trackR\"]))]\n    return [(0.0, pair(p[\"trackF\"])), (wb - p[\"axleGap\"], pair(p[\"trackR\"])), (wb, pair(p[\"trackR\"]))]\n\n\ndef solve(p):\n    \"\"\"車身側視輪廓：下緣為直線加輪拱圓弧，上緣為通過控制點的平滑曲線。\"\"\"\n    r = p[\"wheelD\"] / 2.0\n    ra = r + ARCH_GAP\n    x0 = -p[\"ohF\"]\n    x1 = p[\"wheelbase\"] + p[\"ohR\"]\n    L = x1 - x0\n    zb = p[\"clear\"]\n    hb = max(p[\"belt\"], zb + 100.0)\n    D = hb - zb\n    sx = x0 + 0.04 * L\n    ex = x1 - 0.06 * L\n\n    axles = axles_of(p)\n    arches = []\n    for (ax, ys) in axles:\n        covered = any(abs(y) - p[\"tireW\"] / 2.0 < p[\"bodyW\"] / 2.0 for y in ys)\n        dz = zb - r\n        if covered and abs(dz) < ra:\n            dx = math.sqrt(ra * ra - dz * dz)\n            a, b = ax - dx, ax + dx\n            if b > sx and a < ex:\n                arches.append((ax, a, b))\n    arches.sort()\n\n    segs = []\n    start = (sx, zb)\n    cur = (sx, zb)\n    prev_end = -1e9\n    for (cx, a, b) in arches:\n        if a < prev_end:\n            continue  # 與前一個輪拱重疊，略過\n        za = zb\n        zbb = zb\n        if a < sx:\n            if segs:\n                continue\n            a = sx\n            za = r + math.sqrt(max(ra * ra - (sx - cx) ** 2, 0.0))\n            start = (sx, za)\n            cur = start\n        elif a - cur[0] > 1e-6:\n            segs.append((\"line\", cur, (a, zb)))\n        if b > ex:\n            b = ex\n            zbb = r + math.sqrt(max(ra * ra - (ex - cx) ** 2, 0.0))\n        segs.append((\"arc\", cx, r, ra, (a, za), (b, zbb)))\n        cur = (b, zbb)\n        prev_end = b\n    if ex - cur[0] > 1e-6:\n        segs.append((\"line\", cur, (ex, zb)))\n        cur = (ex, zb)\n    end = cur\n\n    nose = p[\"nose\"]\n    top = [\n        end,\n        (x1, max(zb + D * 0.45, end[1] + 20.0)),\n        (x1 - 0.015 * L, hb - D * 0.05),\n        (x1 - 0.12 * L, hb),\n        (x0 + 0.40 * L, hb),\n        (x0 + 0.18 * L, zb + D * (nose + (1.0 - nose) * 0.75)),\n        (x0, max(zb + D * nose, start[1] + 20.0)),\n        start,\n    ]\n    return {\"r\": r, \"ra\": ra, \"x0\": x0, \"x1\": x1, \"L\": L, \"zb\": zb, \"hb\": hb, \"D\": D,\n            \"axles\": axles, \"segs\": segs, \"top\": top}\n\n\ndef figure_of(p, g):\n    cab = p[\"cabin\"]\n    cxC = g[\"x0\"] + p[\"cabinPos\"] * g[\"L\"]\n    cl = p[\"cabinLen\"] * g[\"L\"]\n    headX = cxC + 0.12 * cl if cab == \"closed\" else cxC\n    headR = 105.0 if cab == \"closed\" else 135.0\n    headTop = p[\"seatH\"] + p[\"sitH\"]\n    head = (headX, headTop - headR)\n    off = {\"open\": -380.0, \"closed\": -220.0, \"rider\": 230.0}.get(cab, -220.0)\n    hip = (headX + off, p[\"seatH\"] + 90.0)\n    sh = (hip[0] + (head[0] - hip[0]) * 0.78, hip[1] + (head[1] - hip[1]) * 0.78)\n    if cab == \"rider\":\n        knee = (hip[0] - 380.0, p[\"seatH\"] - 20.0)\n        foot = (hip[0] - 280.0, max(g[\"zb\"] + 80.0, p[\"seatH\"] - 470.0))\n    else:\n        knee = (hip[0] - 430.0, p[\"seatH\"] + (200.0 if cab == \"closed\" else 250.0))\n        foot = (hip[0] - 880.0, max(g[\"zb\"] + 60.0, p[\"seatH\"] - 180.0))\n    y = -0.2 * p[\"bodyW\"] if (cab == \"closed\" and p[\"bodyW\"] > 1300) else 0.0\n    return {\"cxC\": cxC, \"cl\": cl, \"headX\": headX, \"headR\": headR, \"headTop\": headTop,\n            \"head\": head, \"hip\": hip, \"sh\": sh, \"knee\": knee, \"foot\": foot, \"y\": y}\n\n\ndef P(x, z, y=0.0):\n    return rg.Point3d(x, y, z)\n\n\ndef extrude_profile(crv, width):\n    srf = rg.Surface.CreateExtrusion(crv, rg.Vector3d(0, width, 0))\n    brep = srf.ToBrep()\n    capped = brep.CapPlanarHoles(TOL)\n    if capped:\n        brep = capped\n    brep.Translate(rg.Vector3d(0, -width / 2.0, 0))\n    return brep\n\n\ndef body_profile(g):\n    crvs = []\n    for s in g[\"segs\"]:\n        if s[0] == \"line\":\n            crvs.append(rg.LineCurve(P(*s[1]), P(*s[2])))\n        else:\n            _, cx, cz, ra, a, b = s\n            t0 = math.atan2(a[1] - cz, a[0] - cx)\n            t1 = math.atan2(b[1] - cz, b[0] - cx)\n            if t0 < t1:\n                t0 += 2 * math.pi\n            tm = (t0 + t1) / 2.0\n            mid = P(cx + ra * math.cos(tm), cz + ra * math.sin(tm))\n            crvs.append(rg.ArcCurve(rg.Arc(P(*a), mid, P(*b))))\n    top_pts = [P(x, z) for (x, z) in g[\"top\"]]\n    crvs.append(rg.Curve.CreateInterpolatedCurve(top_pts, 3))\n    joined = rg.Curve.JoinCurves(crvs, TOL * 10)\n    crv = joined[0]\n    if not crv.IsClosed:\n        crv.MakeClosed(TOL * 10)\n    return crv\n\n\ndef build():\n    p = read_params()\n    g = solve(p)\n    f = figure_of(p, g)\n    r, hb = g[\"r\"], g[\"hb\"]\n\n    prof = body_profile(g)\n    body_brep = extrude_profile(prof, p[\"bodyW\"])\n\n    # 座艙\n    canopy_out = []\n    if p[\"cabin\"] == \"closed\" and p[\"roof\"] > hb + 80:\n        xc0 = f[\"cxC\"] - f[\"cl\"] / 2.0\n        xc1 = f[\"cxC\"] + f[\"cl\"] / 2.0\n        cl, roof, zc = f[\"cl\"], p[\"roof\"], hb - 20.0\n        pts = [P(xc0, zc), P(xc0 + 0.38 * cl, roof - 15), P(xc0 + 0.62 * cl, roof),\n               P(xc1 - 0.18 * cl, roof - 40), P(xc1, zc)]\n        top = rg.Curve.CreateInterpolatedCurve(pts, 3)\n        base = rg.LineCurve(P(xc1, zc), P(xc0, zc))\n        gh = rg.Curve.JoinCurves([top, base], TOL * 10)[0]\n        cw = min(p[\"bodyW\"] * 0.8, p[\"bodyW\"] - 80)\n        canopy_out.append(extrude_profile(gh, cw))\n    elif p[\"cabin\"] == \"open\":\n        xh = f[\"headX\"] + 180.0\n        hr = min(p[\"bodyW\"] * 0.75, 620.0) / 2.0\n        if p[\"roof\"] - hr < hb:\n            hr = max(80.0, p[\"roof\"] - hb)\n        legs_top = p[\"roof\"] - hr\n        pts_l = [P(xh, hb - 30, -hr), P(xh, legs_top, -hr)]\n        pts_r = [P(xh, legs_top, hr), P(xh, hb - 30, hr)]\n        arc = rg.ArcCurve(rg.Arc(P(xh, legs_top, -hr), P(xh, p[\"roof\"], 0), P(xh, legs_top, hr)))\n        rail = rg.Curve.JoinCurves([rg.LineCurve(*pts_l), arc, rg.LineCurve(*pts_r)], TOL * 10)[0]\n        pipes = rg.Brep.CreatePipe(rail, 16.0, False, rg.PipeCapMode.Round, True, TOL, 0.02)\n        if pipes:\n            canopy_out.extend(pipes)\n\n    # 輪胎\n    wheel_out = []\n    for (ax, ys) in g[\"axles\"]:\n        for y in ys:\n            pl = rg.Plane(rg.Point3d(ax, y - p[\"tireW\"] / 2.0, r), rg.Vector3d(0, 1, 0))\n            wheel_out.append(rg.Cylinder(rg.Circle(pl, r), p[\"tireW\"]).ToBrep(True, True))\n\n    # 乘員人偶\n    fig_out = []\n    y = f[\"y\"]\n    fig_out.append(rg.Sphere(P(f[\"head\"][0], f[\"head\"][1], y), f[\"headR\"]).ToBrep())\n    limbs = [(f[\"hip\"], f[\"sh\"], 140.0), (f[\"hip\"], f[\"knee\"], 65.0), (f[\"knee\"], f[\"foot\"], 55.0)]\n    for (a, b, rad) in limbs:\n        rail = rg.LineCurve(P(a[0], a[1], y), P(b[0], b[1], y))\n        pipes = rg.Brep.CreatePipe(rail, rad, False, rg.PipeCapMode.Round, True, TOL, 0.02)\n        if pipes:\n            fig_out.extend(pipes)\n\n    # 尺寸摘要\n    xs = [ax for (ax, _) in g[\"axles\"]]\n    front = min(g[\"x0\"], min(xs) - r)\n    rear = max(g[\"x1\"], max(xs) + r)\n    tracks = [abs(yy) * 2 for (_, ys) in g[\"axles\"] for yy in ys]\n    width = max(p[\"bodyW\"], max(tracks) + p[\"tireW\"])\n    height = max(hb, f[\"headTop\"], p[\"roof\"] if p[\"cabin\"] != \"rider\" else 0)\n    length = rear - front\n    lines = [\n        u\"全長 {0:.0f} mm\".format(length),\n        u\"全寬 {0:.0f} mm\".format(width),\n        u\"全高 {0:.0f} mm\".format(height),\n        u\"軸距 {0:.0f} mm（佔全長 {1:.0%}）\".format(p[\"wheelbase\"], p[\"wheelbase\"] / length),\n        u\"輪徑 / 全高 = {0:.2f}\".format(p[\"wheelD\"] / height),\n        u\"頭頂離地 {0:.0f} mm\".format(f[\"headTop\"]),\n    ]\n    return body_brep, canopy_out, wheel_out, fig_out, prof, \"\\n\".join(lines)\n\n\nbody, canopy, wheels, figure, profile, info = build()\n";
+
+/* ---------- 參數與範例 ---------- */
+const PRESETS = {
+  utv4:  {name:'四輪', s:{wheelCount:4,layout3:'tadpole',layout6:'rear',wheelbase:2972,axleGap:870,trackF:1372,trackR:1372,wheelD:762,tireW:254,ohF:401,ohR:381,bodyW:1100,belt:950,clear:368,nose:0.45,cabin:'cage',cabinPos:0.38,cabinLen:0.45,roof:1905,seatH:600,sitH:965,fsae:false,rows:2,rowGap:1000,rearRise:80,utv:true}},
+  utv6:  {name:'六輪', s:{wheelCount:6,layout3:'tadpole',layout6:'rear',wheelbase:3842,axleGap:870,trackF:1372,trackR:1372,wheelD:762,tireW:254,ohF:401,ohR:381,bodyW:1100,belt:950,clear:368,nose:0.45,cabin:'cage',cabinPos:0.30,cabinLen:0.45,roof:1905,seatH:600,sitH:965,fsae:false,rows:2,rowGap:1000,rearRise:80,utv:true}},
+};
+for(const k in PRESETS) PRESETS[k].s={rows:1,rowGap:1000,rearRise:0,utv:false,...PRESETS[k].s};
+let S = {...PRESETS.utv4.s};
+let activePreset = 'utv4';
+
+const hasPairF = s => s.wheelCount===4 || s.wheelCount===6 || (s.wheelCount===3 && s.layout3==='tadpole');
+const hasPairR = s => s.wheelCount===4 || s.wheelCount===6 || (s.wheelCount===3 && s.layout3==='delta');
+const CTRL_ALL = [
+  {g:'輪組配置'},
+  {k:'wheelCount',t:'seg',label:'輪數',opts:[[2,'2 輪'],[3,'3 輪'],[4,'4 輪'],[6,'6 輪']]},
+  {k:'layout3',t:'seg',label:'三輪排列',opts:[['tadpole','前二後一'],['delta','前一後二']],show:s=>s.wheelCount===3},
+  {k:'layout6',t:'seg',label:'六輪排列',opts:[['front','前雙軸'],['rear','後雙軸']],show:s=>s.wheelCount===6},
+  {k:'wheelbase',label:'軸距',min:800,max:4500,step:5,hint:'第一軸到最後一軸的距離'},
+  {k:'axleGap',label:'雙軸間距',min:300,max:2000,step:5,show:s=>s.wheelCount===6},
+  {k:'trackF',label:'前輪距',min:400,max:2200,step:5,show:hasPairF},
+  {k:'trackR',label:'後輪距',min:400,max:2200,step:5,show:hasPairR},
+  {k:'wheelD',label:'輪胎外徑',min:250,max:1200,step:5},
+  {k:'tireW',label:'胎寬',min:40,max:400,step:5},
+  {g:'車身'},
+  {k:'ohF',label:'前懸',min:0,max:1600,step:5,hint:'前軸到車頭'},
+  {k:'ohR',label:'後懸',min:0,max:1600,step:5,hint:'後軸到車尾'},
+  {k:'bodyW',label:'車身寬',min:300,max:2600,step:5,hint:'車身比輪距窄時輪子外露，較寬時自動切出輪拱'},
+  {k:'belt',label:'腰線高',min:300,max:2500,step:5,hint:'車身主體頂面離地高度'},
+  {k:'clear',label:'離地高',min:20,max:600,step:1},
+  {k:'nose',label:'車頭高度',min:5,max:95,step:1,scale:100,unit:'%',hint:'車頭尖端落在車身高度的哪個位置'},
+  {g:'座艙與乘員'},
+  {k:'cabin',t:'seg',label:'座艙形式',opts:[['cage','防滾籠'],['closed','封閉'],['open','開放'],['rider','騎乘']]},
+  {k:'rows',t:'seg',label:'座位排數',opts:[[1,'單排 2 座'],[2,'雙排 4 座']],show:s=>s.cabin==='cage'},
+  {k:'rowGap',label:'前後排間距',min:600,max:1600,step:5,show:s=>s.cabin==='cage'&&s.rows===2,hint:'前排頭部到後排頭部的水平距離'},
+  {k:'rearRise',label:'後排加高',min:0,max:300,step:5,show:s=>s.cabin==='cage'&&s.rows===2,hint:'後排座面比前排高多少（看得到前方）'},
+  {k:'cabinPos',label:'座艙位置',min:10,max:90,step:1,scale:100,unit:'%',hint:'0% 為車頭，100% 為車尾'},
+  {k:'cabinLen',label:'座艙長度',min:15,max:70,step:1,scale:100,unit:'%',show:s=>s.cabin==='closed',hint:'佔車身長度的比例'},
+  {k:'roof',label:s=>s.cabin==='open'||s.cabin==='cage'?'防滾架頂高':'車頂高',min:400,max:3000,step:5,show:s=>s.cabin!=='rider'},
+  {k:'seatH',label:'座面離地',min:50,max:1200,step:5},
+  {k:'sitH',label:'坐高',min:700,max:1100,step:5,hint:'座面到頭頂；身高 185 cm 約 965 mm'},
+  {k:'utv',t:'toggle',label:'套用 UTV 任務條件檢查（4 座、全寬 ≤ 64 吋、185 cm 乘員）'},
+  {k:'fsae',t:'toggle',label:'套用 FSAE 規則檢查'},
+];
+
+const CTRL = [
+  {g:'比對參數'},
+  {k:'wheelD',label:'輪徑',min:400,max:1200,step:5,hint:'對齊輪心後，調到跟圖上的輪子一樣大'},
+  {k:'axleGap',label:'雙軸間距',min:500,max:2000,step:5,show:s=>s.wheelCount===6,hint:'調到模型中輪對上圖上的中輪'},
+];
+/* ---------- 幾何求解（與 GH 腳本同一套邏輯） ---------- */
+const ARCH_GAP = 40;
+function axlesOf(s){
+  const wb=s.wheelbase, pair=t=>[-t/2,t/2];
+  if(s.wheelCount===2) return [{x:0,ys:[0]},{x:wb,ys:[0]}];
+  if(s.wheelCount===3) return s.layout3==='tadpole' ? [{x:0,ys:pair(s.trackF)},{x:wb,ys:[0]}] : [{x:0,ys:[0]},{x:wb,ys:pair(s.trackR)}];
+  if(s.wheelCount===4) return [{x:0,ys:pair(s.trackF)},{x:wb,ys:pair(s.trackR)}];
+  return s.layout6==='front'
+    ? [{x:0,ys:pair(s.trackF)},{x:s.axleGap,ys:pair(s.trackF)},{x:wb,ys:pair(s.trackR)}]
+    : [{x:0,ys:pair(s.trackF)},{x:wb-s.axleGap,ys:pair(s.trackR)},{x:wb,ys:pair(s.trackR)}];
+}
+function solve(s){
+  const r=s.wheelD/2, ra=r+ARCH_GAP, x0=-s.ohF, x1=s.wheelbase+s.ohR, L=x1-x0;
+  const zb=s.clear, hb=Math.max(s.belt,zb+100), D=hb-zb, sx=x0+0.04*L, ex=x1-0.06*L;
+  const axles=axlesOf(s);
+  let arches=[], overlap=false, archTop=0;
+  for(const a of axles){
+    a.covered = a.ys.some(y=>Math.abs(y)-s.tireW/2 < s.bodyW/2);
+    const dz=zb-r;
+    if(a.covered && Math.abs(dz)<ra){
+      const dx=Math.sqrt(ra*ra-dz*dz), A=a.x-dx, B=a.x+dx;
+      if(B>sx && A<ex) arches.push({cx:a.x,a:A,b:B});
+    }
+  }
+  arches.sort((p,q)=>p.cx-q.cx);
+  const segs=[]; let start=[sx,zb], cur=[sx,zb], prevEnd=-1e9;
+  for(const ar of arches){
+    let a=ar.a, b=ar.b, za=zb, zbb=zb;
+    if(a<prevEnd){ overlap=true; continue; }
+    if(a<sx){
+      if(segs.length) continue;
+      a=sx; za=r+Math.sqrt(Math.max(ra*ra-(sx-ar.cx)**2,0)); start=[sx,za]; cur=start;
+    } else if(a-cur[0]>1e-6){ segs.push({type:'line',p0:cur,p1:[a,zb]}); }
+    if(b>ex){ b=ex; zbb=r+Math.sqrt(Math.max(ra*ra-(ex-ar.cx)**2,0)); }
+    let t0=Math.atan2(za-r,a-ar.cx), t1=Math.atan2(zbb-r,b-ar.cx);
+    if(t0<t1) t0+=2*Math.PI;
+    segs.push({type:'arc',cx:ar.cx,cz:r,ra,t0,t1,p0:[a,za],p1:[b,zbb]});
+    archTop=Math.max(archTop,r+ra);
+    cur=[b,zbb]; prevEnd=b;
+  }
+  if(ex-cur[0]>1e-6){ segs.push({type:'line',p0:cur,p1:[ex,zb]}); cur=[ex,zb]; }
+  const end=cur, n=s.nose;
+  const top=[end,[x1,Math.max(zb+D*0.45,end[1]+20)],[x1-0.015*L,hb-D*0.05],[x1-0.12*L,hb],[x0+0.40*L,hb],
+             [x0+0.18*L,zb+D*(n+(1-n)*0.75)],[x0,Math.max(zb+D*n,start[1]+20)],start];
+  return {r,ra,x0,x1,L,zb,hb,D,axles,segs,top,start,overlap,archTop};
+}
+const cageHalf = s => Math.max(s.bodyW/2-30, 250);
+function figureOf(s,g,row=0){
+  const cab=s.cabin, cxC=g.x0+s.cabinPos*g.L, cl=s.cabinLen*g.L;
+  const sH = s.seatH + (cab==='cage' ? row*(s.rearRise||0) : 0);
+  const headX = (cab==='closed' ? cxC+0.12*cl : cxC) + (cab==='cage' ? row*s.rowGap : 0);
+  const headR = cab==='closed' ? 105 : cab==='cage' ? 110 : 135;
+  const headTop = sH+s.sitH, head=[headX,headTop-headR];
+  const off = {open:-380,closed:-220,rider:230,cage:-260}[cab];
+  const hip=[headX+off,sH+90];
+  const sh=[hip[0]+(head[0]-hip[0])*0.78, hip[1]+(head[1]-hip[1])*0.78];
+  let knee,foot;
+  if(cab==='rider'){ knee=[hip[0]-380,sH-20]; foot=[hip[0]-280,Math.max(g.zb+80,sH-470)]; }
+  else if(cab==='cage'){ knee=[hip[0]-420,sH+180]; foot=[hip[0]-760,Math.max(g.zb+60,sH-300)]; }
+  else { knee=[hip[0]-430,sH+(cab==='closed'?200:250)]; foot=[hip[0]-880,Math.max(g.zb+60,sH-180)]; }
+  const y = (cab==='closed' && s.bodyW>1300) ? -0.2*s.bodyW : 0;
+  const ys = cab==='cage' ? [-cageHalf(s)*0.48, cageHalf(s)*0.48] : [y];
+  return {cxC,cl,xc0:cxC-cl/2,xc1:cxC+cl/2,headX,headR,headTop,head,hip,sh,knee,foot,y,ys,sH,row};
+}
+function figuresOf(s,g){
+  const n = s.cabin==='cage' ? (s.rows===2?2:1) : 1;
+  return Array.from({length:n},(_,i)=>figureOf(s,g,i));
+}
+function seatCount(s){ return s.cabin==='cage' ? (s.rows===2?4:2) : s.cabin==='rider' ? 1 : null; }
+
+/* ---------- 檢查 ---------- */
+function hull(pts){
+  const P=[...pts].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[],up=[];
+  for(const p of P){ while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],p)<=0) lo.pop(); lo.push(p); }
+  for(const p of P.slice().reverse()){ while(up.length>=2&&cross(up[up.length-2],up[up.length-1],p)<=0) up.pop(); up.push(p); }
+  return lo.slice(0,-1).concat(up.slice(0,-1));
+}
+function segDist(p,a,b){
+  const vx=b[0]-a[0], vy=b[1]-a[1], L2=vx*vx+vy*vy;
+  let t=L2?((p[0]-a[0])*vx+(p[1]-a[1])*vy)/L2:0; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(p[0]-a[0]-t*vx, p[1]-a[1]-t*vy);
+}
+function runChecks(s,g,f,fs,d){
+  const out=[], add=(lv,title,body)=>out.push({lv,title,body});
+  const mm=v=>Math.round(v).toLocaleString('en-US')+' mm';
+  if(s.utv){
+    const D=s.wheelD, xs=g.axles.map(a=>a.x);
+    const rng=(v,lo,hi,title,ref,est)=>add(v>=lo&&v<=hi?'ok':'warn',`${title} ${v.toFixed(2)}`,`${est?'推估合理範圍':'市售四人座 UTV'}約 ${lo}–${hi}${ref?'；'+ref:''}。${v<lo?'偏小。':v>hi?'偏大。':''}`);
+    if(!OV.pts) add('info','尚未對齊圖片','先到「疊圖比對」載入正側視圖並對齊輪心，再調輪徑；下面的數值才代表你的設計。');
+    if(s.wheelCount===4) rng(s.wheelbase/D,3.8,4.5,'軸距 ÷ 輪徑','即軸距約為幾個輪徑');
+    else {
+      const seg=xs.slice(1).map((x,i)=>x-xs[i]);
+      rng(Math.max(...seg)/D,3.8,4.5,'主軸距 ÷ 輪徑','由四輪車款換算，為單軸到雙軸組之間的距離',true);
+      rng(Math.min(...seg)/D,1.05,1.4,'雙軸間距 ÷ 輪徑','兩胎之間需留間隙',true);
+      if(Math.min(...seg) < D+20) add('fail','輪胎互相干涉','兩個後輪的距離小於輪徑，輪胎會撞在一起。');
+      add('info','六輪沿用四輪條件','四人座、全寬不超過 64 吋（參考模型全寬 1,626 mm 與四輪相同；加軸只會變長、不會變寬）、防滾籠保護 185 cm 乘員。市面上沒有同級的四人座運動型六輪車，因此前段沿用四輪的軸距比例，後段兩軸間距須大於 1 個輪徑以留輪胎間隙，1.05–1.4 倍為推估範圍。');
+    }
+    const A=approachAngles();
+    if(A){
+      for(const [k,lab,txt] of [['front','前通過角（接近角）','前輪胎切線與車頭最低點連線'],['rear','後通過角（離去角）','最後一個輪胎切線與車尾最低點連線']])
+        if(A[k]!=null) add('info',A[k]>=90?`${lab} ≥ 90°`:`${lab} ${A[k].toFixed(0)}°`,A[k]>=90?'所點的位置高於輪胎切線，車身不會比輪胎先碰到障礙；若不是你要的點，請重新量。':`由圖上量得：${txt}和地面的夾角，角度越大越不容易卡到。原廠規格未公布 UTV 通過角，此值用於比較不同設計，沒有合格門檻。`);
+        else if(A[k+'Err']) add('warn',lab+'無法計算',A[k+'Err']);
+    }
+    add('info','乘員與防滾籠','模型中的乘員為身高 185 cm。對齊後可直接看圖上的防滾籠是否罩得住乘員頭部。');
+    const order={fail:0,warn:1,info:2,ok:3};
+    return out.sort((a,b)=>order[a.lv]-order[b.lv]);
+  }
+  // 輪胎干涉
+  const xs=g.axles.map(a=>a.x);
+  let interf=false;
+  for(let i=1;i<xs.length;i++){ const gap=xs[i]-xs[i-1]; if(gap < s.wheelD+20){ interf=true; add('fail','輪胎互相干涉',`相鄰兩軸距離 ${mm(gap)}，小於輪徑 ${mm(s.wheelD)} 加 20 mm 間隙。`); } }
+  if(!interf) add('ok','輪胎之間沒有干涉',`最小軸間距 ${mm(Math.min(...xs.slice(1).map((x,i)=>x-xs[i])))}。`);
+  if(g.overlap) add('warn','輪拱重疊','兩個輪拱在車身下緣交疊，第二個輪拱未切出。');
+  // 輪拱高度
+  if(g.archTop>0){
+    if(g.archTop > g.hb-30) add('fail','輪拱高過腰線',`輪拱頂 ${mm(g.archTop)}，腰線 ${mm(g.hb)}。車身在輪子上方會被切斷，需加高腰線或縮小輪徑。`);
+    else add('ok','輪拱在腰線以下',`輪拱頂 ${mm(g.archTop)}，距腰線 ${mm(g.hb-g.archTop)}。`);
+  }
+  // 頭部空間
+  if(s.cabin==='rider') add('info','騎乘式：無車頂',`頭頂離地 ${mm(f.headTop)}。`);
+  else for(const fi of fs){
+    const clr=s.roof-fi.headTop, who = fs.length>1 ? (fi.row===0?'前排':'後排') : '';
+    const what = s.cabin==='open'||s.cabin==='cage'?'防滾架':'車頂';
+    if(clr<0) add('fail',who+'頭部穿出'+what,`頭頂 ${mm(fi.headTop)}，${what} ${mm(s.roof)}，差 ${mm(-clr)}。`);
+    else if(clr<50) add('warn',who+'頭部空間不足',`頭頂到${what}只有 ${mm(clr)}，建議至少 50 mm。`);
+    else add('ok',who+'頭部空間足夠',`頭頂到${what} ${mm(clr)}。`);
+  }
+  if(s.cabin==='closed'){
+    if(s.roof <= g.hb+80) add('fail','車頂低於腰線',`車頂 ${mm(s.roof)} 幾乎不高於腰線 ${mm(g.hb)}，座艙無法成立。`);
+    if(f.headX < f.xc0+0.15*f.cl || f.headX > f.xc1-0.05*f.cl) add('warn','乘員頭部不在座艙內','調整座艙位置或長度。');
+  }
+  if(s.seatH < g.zb+30) add('warn','座面低於車底',`座面 ${mm(s.seatH)}，離地高 ${mm(g.zb)}。`);
+  // 穩定性
+  const pts=[]; g.axles.forEach(a=>a.ys.forEach(y=>pts.push([a.x,y])));
+  if(s.wheelCount===2){ add('info','雙輪：需騎乘者主動平衡','靜態時沒有側向支撐面，不計算穩定係數。'); }
+  else {
+    const H=hull(pts);
+    const mid=(xs[0]+xs[xs.length-1])/2, xcg=0.7*mid+0.3*f.hip[0];
+    const hcg=0.7*(g.zb+g.D*0.4)+0.3*(s.seatH+250);
+    let d=Infinity; for(let i=0;i<H.length;i++) d=Math.min(d,segDist([xcg,0],H[i],H[(i+1)%H.length]));
+    const ssf=d/hcg, lv=ssf>=1.1?'ok':ssf>=0.8?'warn':'fail';
+    add(lv,`靜態穩定係數約 ${ssf.toFixed(2)}`,`重心到翻覆軸 ${mm(d)}，重心高約 ${mm(hcg)}。低於 1.1 在急轉彎時較容易側翻${s.wheelCount===3?'；三輪車的翻覆軸是斜的，係數通常比四輪低':''}。`);
+  }
+  // UTV 任務條件與比例
+  if(s.utv){
+    const n=seatCount(s);
+    if(n===4) add('ok','座位數：4 座','符合任務條件。');
+    else add('fail','座位數不符',`目前 ${n??'?'} 座，任務要求 4 座（座艙形式選防滾籠、雙排）。`);
+    const W=d.W, inch=W/25.4;
+    if(W<=1626) add('ok',`全寬 ${inch.toFixed(1)} 吋 ≤ 64 吋`,`目前 ${mm(W)}（上限 1,626 mm）。`);
+    else add('fail',`全寬 ${inch.toFixed(1)} 吋，超過 64 吋`,`目前 ${mm(W)}，上限 1,626 mm。全寬取車身寬與「輪距＋胎寬」較大者。`);
+    if(s.sitH<955) add('warn','乘員小於 185 cm','坐高低於約 965 mm（身高 185 cm），頭部空間檢查會偏寬鬆。');
+    if(s.cabin!=='cage') add('warn','未使用防滾籠','任務要求防滾籠保護乘員；座艙形式請選「防滾籠」。');
+    const D=s.wheelD, rng=(v,lo,hi,title,ref,est)=>add(v>=lo&&v<=hi?'ok':'warn',`${title} ${v.toFixed(2)}`,`${est?'推估合理範圍':'市售四人座 UTV'}約 ${lo}–${hi}${ref?'；'+ref:''}。${v<lo?'偏小。':v>hi?'偏大。':''}`);
+    if(s.wheelCount===4) rng(s.wheelbase/D,3.9,4.5,'軸距 ÷ 輪徑','即軸距約為幾個輪徑');
+    if(s.wheelCount===6){
+      const seg=xs.slice(1).map((x,i)=>x-xs[i]), main=Math.max(...seg), tandem=Math.min(...seg);
+      rng(main/D,3.6,4.6,'主軸距 ÷ 輪徑','由四輪車款換算，為單軸到雙軸組之間的距離',true);
+      rng(tandem/D,1.05,1.4,'雙軸間距 ÷ 輪徑','兩胎之間需留間隙',true);
+      add('info',`總軸距 ÷ 輪徑 ${(s.wheelbase/D).toFixed(2)}`,'六輪沒有四人座運動型的市售參照，請以上面兩項為主。');
+    }
+    if(s.wheelCount===4) rng(d.Lo/d.H,1.85,2.1,'全長 ÷ 全高');
+    rng(d.H/D,2.4,2.9,'全高 ÷ 輪徑');
+    rng((s.ohF+s.ohR)/D,0.9,1.2,'前後懸合計 ÷ 輪徑');
+  }
+  // FSAE
+  if(s.fsae){
+    if(s.wheelCount!==4) add('fail','FSAE：須為四輪','FSAE 規則要求四個車輪，且不可排成一直線。');
+    if(s.wheelbase>=1525) add('ok','FSAE：軸距 ≥ 1525 mm',`目前 ${mm(s.wheelbase)}。`);
+    else add('fail','FSAE：軸距不足',`規則下限 1525 mm，目前 ${mm(s.wheelbase)}。`);
+    if(s.wheelCount===4){
+      const ratio=Math.min(s.trackF,s.trackR)/Math.max(s.trackF,s.trackR);
+      add(ratio>=0.75?'ok':'fail',`FSAE：較小輪距為較大的 ${(ratio*100).toFixed(0)}%`,'規則要求至少 75%。');
+    }
+    if(s.cabin==='closed') add('warn','FSAE：須為開放座艙','FSAE 車為開放式座艙並需主環與前環防滾架。');
+  }
+  const order={fail:0,warn:1,info:2,ok:3};
+  return out.sort((a,b)=>order[a.lv]-order[b.lv]);
+}
+function dimsOf(s,g,f,fs){
+  const xs=g.axles.map(a=>a.x);
+  const front=Math.min(g.x0,Math.min(...xs)-g.r), rear=Math.max(g.x1,Math.max(...xs)+g.r);
+  const tracks=g.axles.flatMap(a=>a.ys.map(y=>Math.abs(y)*2));
+  const W=Math.max(s.bodyW,Math.max(...tracks)+s.tireW);
+  const H=Math.max(g.hb,...(fs||[f]).map(o=>o.headTop),s.cabin!=='rider'?s.roof:0);
+  const Lo=rear-front;
+  return {Lo,W,H,
+    list:[
+      ['全長',Lo,'mm'],['全寬',W,'mm'],['全高',H,'mm'],['軸距',s.wheelbase,'mm'],
+      ['軸距 / 全長',s.wheelbase/Lo,'%'],['輪徑 / 全高',s.wheelD/H,'x'],['全高 / 全長',H/Lo,'x'],
+      ['前懸 : 後懸',s.ohF/Math.max(s.ohR,1),'x'],['頭頂離地',f.headTop,'mm'],['車身長',g.L,'mm'],
+      ['全寬（吋）',W/25.4,'x'],['軸距 ÷ 輪徑',s.wheelbase/s.wheelD,'x'],['全長 ÷ 全高',Lo/H,'x'],
+      ['全高 ÷ 輪徑',H/s.wheelD,'x'],['前後懸 ÷ 輪徑',(s.ohF+s.ohR)/s.wheelD,'x'],['座位數',seatCount(s)??0,'n'],
+    ]};
+}
+
+/* ---------- 介面 ---------- */
+const $=s=>document.querySelector(s);
+const rows={};
+let lastLogged={...S};
+const LOG=[];
+
+function buildControls(){
+  const host=$('#controls'); let grp=null;
+  for(const c of CTRL){
+    if(c.g){ grp=document.createElement('div'); grp.className='group'; grp.innerHTML=`<h2>${c.g}</h2>`; host.appendChild(grp); continue; }
+    const row=document.createElement('div'); row.className='row';
+    const id='p_'+c.k;
+    if(c.t==='seg'){
+      row.innerHTML=`<label>${c.label}</label><span></span><div class="seg" role="group" aria-label="${c.label}">${c.opts.map(o=>`<button type="button" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>`;
+      row.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+        const v=typeof c.opts[0][0]==='number'?Number(b.dataset.v):b.dataset.v;
+        setParam(c.k,v,true);
+      }));
+    } else if(c.t==='toggle'){
+      row.innerHTML=`<label class="toggle" style="grid-column:1/-1"><input type="checkbox" id="${id}"> ${c.label}</label>`;
+      row.querySelector('input').addEventListener('change',e=>setParam(c.k,e.target.checked,true));
+    } else {
+      const sc=c.scale||1;
+      row.innerHTML=`<label for="${id}" class="lbl"></label><span class="num"><input type="number" id="${id}n" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${typeof c.label==='string'?c.label:''} 數值"><em>${c.unit??'mm'}</em></span>
+        <input type="range" id="${id}" min="${c.min}" max="${c.max}" step="${c.step}">${c.hint?`<div class="hint">${c.hint}</div>`:''}`;
+      const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+      rg.addEventListener('input',()=>setParam(c.k,Number(rg.value)/sc,false));
+      rg.addEventListener('change',()=>logChange(c.k));
+      nb.addEventListener('change',()=>{ let v=Number(nb.value); if(!isFinite(v)) v=S[c.k]*sc; v=Math.max(c.min,Math.min(c.max,v)); setParam(c.k,v/sc,true); });
+    }
+    rows[c.k]={row,c}; grp.appendChild(row);
+  }
+}
+function syncControls(){
+  for(const k in rows){
+    const {row,c}=rows[k];
+    row.hidden = c.show ? !c.show(S) : false;
+    if(c.t==='seg') row.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===String(S[k]))));
+    else if(c.t==='toggle') row.querySelector('input').checked=!!S[k];
+    else {
+      const sc=c.scale||1, v=+(S[k]*sc).toFixed(4);
+      row.querySelector('.lbl').textContent = typeof c.label==='function'?c.label(S):c.label;
+      const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+      if(document.activeElement!==rg) rg.value=v;
+      if(document.activeElement!==nb) nb.value=v;
+    }
+  }
+  document.querySelectorAll('#presets .chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.p===activePreset)));
+}
+function setParam(k,v,commit){
+  S[k]=v; activePreset=null; scheduleBuild(); syncControls();
+  if(commit) logChange(k);
+}
+function logChange(k){
+  if(lastLogged[k]===S[k]) return;
+  addLog(k,lastLogged[k],S[k]); lastLogged[k]=S[k];
+}
+function addLog(param,from,to){
+  const t=new Date(); const pad=n=>String(n).padStart(2,'0');
+  LOG.push({time:`${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`,
+    pid:$('#pid').value.trim(),phase:$('#phase').value.trim(),param,from:fmtLog(from),to:fmtLog(to)});
+  renderLog();
+}
+const fmtLog=v=>typeof v==='number'?String(+v.toFixed(3)):String(v);
+function renderLog(){
+  $('#logcount').textContent=LOG.length;
+  $('#logbody').innerHTML=LOG.slice(-40).reverse().map(r=>`<tr><td>${r.time.slice(11)}</td><td>${esc(r.pid)}</td><td>${esc(r.phase)}</td><td>${esc(r.param)}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td></tr>`).join('');
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function applyPreset(key){
+  const p=PRESETS[key];
+  addLog('範例',activePreset?PRESETS[activePreset].name:'自訂',p.name);
+  S={...p.s}; activePreset=key; lastLogged={...S};
+  syncControls(); scheduleBuild(true);
+}
+
+function renderPanels(){
+  const g=solve(S), fs=figuresOf(S,g), f=fs[0];
+  const d=dimsOf(S,g,f,fs);
+  const checks=runChecks(S,g,f,fs,d);
+  $('#checks').innerHTML=checks.map(c=>`<li><span class="pill ${c.lv}">${{ok:'通過',warn:'注意',fail:'不符',info:'說明'}[c.lv]}</span><div><b>${c.title}</b><p>${c.body}</p></div></li>`).join('');
+  const nf=checks.filter(c=>c.lv==='fail').length, nw=checks.filter(c=>c.lv==='warn').length;
+  const cc=$('#chkcount'); cc.textContent=nf||nw||'✓'; cc.className='count'+(nf?' bad':nw?' meh':'');
+  $('#dims').innerHTML=d.list.map(([k,v,u])=>`<div><dt>${k}</dt><dd>${u==='mm'?Math.round(v).toLocaleString('en-US')+' <small>mm</small>':u==='%'?(v*100).toFixed(1)+' <small>%</small>':u==='n'?String(v||'—'):v.toFixed(2)}</dd></div>`).join('');
+  $('#readout').innerHTML=`<span>長</span><b>${Math.round(d.Lo)}</b><span>寬</span><b>${Math.round(d.W)}</b><span>高</span><b>${Math.round(d.H)}</b><span>軸距</span><b>${Math.round(S.wheelbase)}</b>`;
+  return {g,f,fs};
+}
+
+/* ---------- 3D ---------- */
+let renderer,scene,camera,controls,veh,bands,grid,ground,sun,view='side',needsFrame=true,pending=false,mats;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function V(x,z,y){ return new THREE.Vector3(x,z,y||0); }
+
+function initThree(){
+  const stage=$('#stage');
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  stage.insertBefore(renderer.domElement,stage.firstChild);
+  scene=new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8a8f96,0.75));
+  sun=new THREE.DirectionalLight(0xffffff,0.85); sun.position.set(-4,8,5); sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-6,right:6,top:6,bottom:-6,near:0.5,far:30}); sun.shadow.radius=4;
+  scene.add(sun); scene.add(sun.target);
+  ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.ShadowMaterial({opacity:0.18}));
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+  veh=new THREE.Group(); veh.scale.setScalar(0.001); scene.add(veh);
+  bands=new THREE.Group(); bands.scale.setScalar(0.001); scene.add(bands);
+  mats={
+    clay:new THREE.MeshStandardMaterial({roughness:0.8,metalness:0}),
+    glass:new THREE.MeshStandardMaterial({color:0x7fa6bf,roughness:0.1,metalness:0.2,transparent:true,opacity:0.38,depthWrite:false}),
+    tire:new THREE.MeshStandardMaterial({color:0x1f2226,roughness:0.92}),
+    rim:new THREE.MeshStandardMaterial({color:0xa3aab1,roughness:0.35,metalness:0.6}),
+    hoop:new THREE.MeshStandardMaterial({color:0x4a4f55,roughness:0.4,metalness:0.7}),
+    seat:new THREE.MeshStandardMaterial({color:0x33373c,roughness:0.85}),
+    fig:new THREE.MeshStandardMaterial({roughness:0.55,transparent:true,opacity:0.9}),
+    cockpit:new THREE.MeshBasicMaterial({color:0x121417}),
+    dim:new THREE.LineBasicMaterial(),
+  };
+  applyTheme();
+  new ResizeObserver(resize).observe(stage);
+  resize();
+  $('#loadmsg').remove();
+  (function loop(){ requestAnimationFrame(loop); if(!camera) return; controls&&controls.update(); renderer.render(scene,camera); })();
+}
+function applyTheme(){
+  if(!scene) return;
+  scene.background=new THREE.Color(css('--stage'));
+  mats.clay.color.set(css('--clay')); mats.fig.color.set(css('--figure')); mats.dim.color.set(css('--accent'));
+  if(grid){ scene.remove(grid); grid.geometry.dispose(); }
+  grid=new THREE.GridHelper(20,20,new THREE.Color(css('--grid-major')),new THREE.Color(css('--grid')));
+  grid.position.y=0.001; grid.visible = view==='3q'||view==='top'; scene.add(grid);
+}
+function disposeGroup(g){ while(g.children.length){ const c=g.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
+function mesh(geo,mat,shadow=true){ const m=new THREE.Mesh(geo,mat); m.castShadow=shadow; m.receiveShadow=shadow; return m; }
+function limb(a,b,r){
+  const A=V(a[0],a[1],a[2]), B=V(b[0],b[1],b[2]), len=A.distanceTo(B);
+  const m=mesh(new THREE.CylinderGeometry(r,r,len,18),mats.fig);
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());
+  veh.add(m);
+  for(const P of [A,B]){ const j=mesh(new THREE.SphereGeometry(r,16,12),mats.fig); j.position.copy(P); veh.add(j); }
+}
+function tube(a,b,r=22){
+  const A=V(a[0],a[1],a[2]), B=V(b[0],b[1],b[2]), len=A.distanceTo(B);
+  const m=mesh(new THREE.CylinderGeometry(r,r,len,14),mats.hoop);
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());
+  veh.add(m);
+  for(const P of [A,B]){ const j=mesh(new THREE.SphereGeometry(r,12,10),mats.hoop); j.position.copy(P); veh.add(j); }
+}
+/* 比例範圍帶：四款 64 吋級四人座 UTV 規格換算（只在側視顯示） */
+const RANGE={wb:[3.8,4.5],h:[2.5,2.8],oh:[0.5,0.65],tandem:[1.05,1.4]};
+function buildBands(g){
+  disposeGroup(bands);
+  const on=$('#bandon')?$('#bandon').checked:true;
+  bands.visible = on && view==='side' && S.utv;
+  if(!bands.visible) return;
+  const D=S.wheelD, xs=g.axles.map(a=>a.x), z=4000;
+  const fill=new THREE.MeshBasicMaterial({color:0x1f9d55,transparent:true,opacity:0.32,depthTest:false,depthWrite:false,side:THREE.DoubleSide});
+  const edge=new THREE.LineBasicMaterial({color:0x1f9d55,transparent:true,opacity:0.9,depthTest:false});
+  const rect=(x0,x1,y0,y1)=>{
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(x1-x0,1),Math.max(y1-y0,1)),fill);
+    m.position.set((x0+x1)/2,(y0+y1)/2,z); m.renderOrder=10; bands.add(m);
+    const pts=[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]].map(p=>new THREE.Vector3(p[0],p[1],z+1));
+    const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),edge); l.renderOrder=11; bands.add(l);
+  };
+  // 後輪中心（四輪）／第一後軸（六輪）應落的位置
+  rect(RANGE.wb[0]*D, RANGE.wb[1]*D, 0, D);
+  if(S.wheelCount===6){ const mid=xs[1]; rect(mid+RANGE.tandem[0]*D, mid+RANGE.tandem[1]*D, 0, D*0.6); }
+  const last=xs[xs.length-1];
+  // 車頂高度
+  rect(-RANGE.oh[1]*D, last+RANGE.oh[1]*D, RANGE.h[0]*D, RANGE.h[1]*D);
+  // 車頭、車尾端點
+  rect(-RANGE.oh[1]*D, -RANGE.oh[0]*D, 0, D*1.4);
+  rect(last+RANGE.oh[0]*D, last+RANGE.oh[1]*D, 0, D*1.4);
+}
+function build(){
+  const {g,f,fs}=renderPanels();
+  if(!scene) return;
+  disposeGroup(veh);
+  // 車身
+  const sh=new THREE.Shape(); sh.moveTo(g.start[0],g.start[1]);
+  for(const s of g.segs){ if(s.type==='line') sh.lineTo(s.p1[0],s.p1[1]); else sh.absarc(s.cx,s.cz,s.ra,s.t0,s.t1,true); }
+  sh.splineThru(g.top.slice(1).map(p=>new THREE.Vector2(p[0],p[1])));
+  const bt=Math.min(30,S.bodyW*0.08), bs=Math.min(25,bt);
+  const depth=Math.max(S.bodyW-2*bt,1);
+  const bg=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:bt,bevelSize:bs,bevelOffset:-bs,bevelSegments:4,curveSegments:28,steps:1});
+  bg.translate(0,0,-depth/2); bg.computeVertexNormals();
+  veh.add(mesh(bg,mats.clay));
+  // 座艙
+  if(S.cabin==='closed' && S.roof>g.hb+80){
+    const cl=f.cl, x0=f.xc0, x1=f.xc1, zc=g.hb-20, roof=S.roof;
+    const cs=new THREE.Shape(); cs.moveTo(x0,zc);
+    cs.splineThru([new THREE.Vector2(x0+0.38*cl,roof-15),new THREE.Vector2(x0+0.62*cl,roof),new THREE.Vector2(x1-0.18*cl,roof-40),new THREE.Vector2(x1,zc)]);
+    cs.lineTo(x0,zc);
+    const cw=Math.min(S.bodyW*0.8,S.bodyW-80), cb=Math.min(20,cw*0.05), cd=Math.max(cw-2*cb,1);
+    const cg=new THREE.ExtrudeGeometry(cs,{depth:cd,bevelEnabled:true,bevelThickness:cb,bevelSize:cb,bevelOffset:-cb,bevelSegments:3,curveSegments:24});
+    cg.translate(0,0,-cd/2);
+    const gm=mesh(cg,mats.glass,false); gm.renderOrder=2; veh.add(gm);
+  } else if(S.cabin==='open'){
+    const xh=f.headX+180; let hr=Math.min(S.bodyW*0.75,620)/2;
+    if(S.roof-hr<g.hb) hr=Math.max(80,S.roof-g.hb);
+    const legTop=S.roof-hr, tube=16;
+    const tor=mesh(new THREE.TorusGeometry(hr,tube,12,40,Math.PI),mats.hoop);
+    tor.rotation.y=Math.PI/2; tor.position.set(xh,legTop,0); veh.add(tor);
+    for(const z of [-hr,hr]){
+      const len=Math.max(legTop-(g.hb-30),1);
+      const leg=mesh(new THREE.CylinderGeometry(tube,tube,len,12),mats.hoop); leg.position.set(xh,(legTop+g.hb-30)/2,z); veh.add(leg);
+    }
+    const op=new THREE.Mesh(new THREE.CircleGeometry(1,48),mats.cockpit);
+    op.scale.set(Math.min(780,g.L*0.3)/2,Math.min(S.bodyW*0.7,560)/2,1);
+    op.rotation.x=-Math.PI/2; op.position.set((f.headX+f.hip[0])/2-120,g.hb+4,0); veh.add(op);
+  } else if(S.cabin==='cage'){
+    const hw=cageHalf(S), roof=Math.max(S.roof,g.hb+200), base=g.hb-20, fr=fs[0], ls=fs[fs.length-1];
+    const xA0=Math.max(fr.headX-950,g.x0+0.06*g.L), xA1=fr.headX-420, xR1=ls.headX+260, xR0=Math.min(ls.headX+380,g.x1-0.04*g.L);
+    const xB = fs.length>1 ? fr.headX+230 : null;
+    for(const z of [-hw,hw]){
+      tube([xA0,base,z],[xA1,roof,z]); tube([xA1,roof,z],[xR1,roof,z]); tube([xR1,roof,z],[xR0,base,z]);
+      if(xB!==null) tube([xB,base,z],[xB,roof,z]);
+    }
+    for(const x of [xA1,xR1].concat(xB!==null?[xB]:[])) tube([x,roof,-hw],[x,roof,hw]);
+    tube([xR0,base+40,-hw],[xR1,roof,hw]);
+    const op=new THREE.Mesh(new THREE.PlaneGeometry(1,1),mats.cockpit);
+    op.scale.set(Math.max(xR0-xA0-300,200),hw*1.8,1);
+    op.rotation.x=-Math.PI/2; op.position.set((xA0+300+xR0)/2,g.hb+4,0); veh.add(op);
+    for(const fi of fs) for(const z of fi.ys){
+      const sb=mesh(new THREE.BoxGeometry(460,90,440),mats.seat); sb.position.set(fi.hip[0]-60,fi.sH+45,z); veh.add(sb);
+      const bk=mesh(new THREE.BoxGeometry(90,620,440),mats.seat); bk.position.set(fi.hip[0]+150,fi.sH+330,z); bk.rotation.z=0.18; veh.add(bk);
+    }
+  }
+  // 車輪
+  const r=g.r, tw=S.tireW;
+  const tireG=new THREE.CylinderGeometry(r,r,tw,56); tireG.rotateX(Math.PI/2);
+  const rimG=new THREE.CylinderGeometry(r*0.64,r*0.64,tw+6,40); rimG.rotateX(Math.PI/2);
+  for(const a of g.axles) for(const y of a.ys){
+    const t=mesh(tireG.clone(),mats.tire); t.position.set(a.x,r,y); veh.add(t);
+    const m=mesh(rimG.clone(),mats.rim); m.position.set(a.x,r,y); veh.add(m);
+  }
+  tireG.dispose(); rimG.dispose();
+  // 乘員
+  for(const fi of fs) for(const y of fi.ys){
+    const head=mesh(new THREE.SphereGeometry(fi.headR,28,20),mats.fig); head.position.set(fi.head[0],fi.head[1],y); veh.add(head);
+    const tw2 = S.cabin==='cage'?110:140;
+    limb([...fi.hip,y],[...fi.sh,y],tw2); limb([...fi.hip,y],[...fi.knee,y],60); limb([...fi.knee,y],[...fi.foot,y],50);
+  }
+  // 軸距標註
+  const halfW=Math.max(S.bodyW/2,...g.axles.flatMap(a=>a.ys.map(v=>Math.abs(v)+tw/2)))+220;
+  const xs=g.axles.map(a=>a.x), pts=[];
+  pts.push(V(xs[0],3,halfW),V(xs[xs.length-1],3,halfW));
+  for(const x of xs) pts.push(V(x,3,halfW-90),V(x,3,halfW+90));
+  pts.push(V(g.x0,3,halfW+160),V(g.x1,3,halfW+160),V(g.x0,3,halfW+100),V(g.x0,3,halfW+220),V(g.x1,3,halfW+100),V(g.x1,3,halfW+220));
+  veh.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),mats.dim));
+  if(needsFrame){ needsFrame=false; setView(view); }
+  buildBands(g);
+  ovRealign();
+}
+function scheduleBuild(reframe){ if(reframe) needsFrame=true; if(pending) return; pending=true; requestAnimationFrame(()=>{ pending=false; build(); }); }
+
+function box(){ const b=new THREE.Box3().setFromObject(veh); if(b.isEmpty()) b.set(V(-1,0,-1),V(1,1.5,1)); return b; }
+function setView(v){
+  view=v;
+  document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));
+  const el=renderer.domElement, W=el.clientWidth||800, H=el.clientHeight||500, asp=W/H;
+  const b=box(), c=b.getCenter(new THREE.Vector3()), sz=b.getSize(new THREE.Vector3());
+  if(controls) controls.dispose();
+  if(v==='3q'){
+    camera=new THREE.PerspectiveCamera(32,asp,0.05,200);
+    const dist=Math.max(sz.x,sz.y*1.6,sz.z)*2.3;
+    camera.position.copy(c).add(new THREE.Vector3(-1,0.5,1.15).normalize().multiplyScalar(dist));
+  } else {
+    let spanW,spanH;
+    if(v==='side'){ spanW=sz.x; spanH=sz.y; } else if(v==='front'){ spanW=sz.z; spanH=sz.y; } else { spanW=sz.x; spanH=sz.z; }
+    let hh=Math.max(spanH*0.7, spanW*0.62/asp); const hw=hh*asp;
+    camera=new THREE.OrthographicCamera(-hw,hw,hh,-hh,0.01,200);
+    camera.userData.hh=hh;
+    if(v==='side') camera.position.set(c.x,c.y,c.z+30);
+    else if(v==='front') camera.position.set(c.x-30,c.y,c.z);
+    else { camera.up.set(0,0,-1); camera.position.set(c.x,c.y+30,c.z); }
+  }
+  camera.lookAt(c);
+  if(grid) grid.visible = v==='3q'||v==='top';
+  if(bands) scheduleBuild();
+  const lg=document.getElementById('bandlegend'); if(lg){ lg.hidden=!(S.utv && $('#bandon').checked); lg.innerHTML = v==='side' ? '<i></i>綠色區塊：四款市售 64 吋級四人座 UTV 的比例範圍。後輪中心、車頂、車頭與車尾應落在對應區塊內。' : '比例範圍（綠色區塊）只在「側視」顯示，請切換到側視。'; }
+  controls=new THREE.OrbitControls(camera,el);
+  controls.target.copy(c); controls.enableDamping=true; controls.dampingFactor=0.12;
+  controls.enableRotate = v==='3q';
+  controls.maxPolarAngle=Math.PI*0.495;
+  if(!$('#ov').hidden && v!=='3q'){ controls.enableZoom=false; controls.enablePan=false; }
+  controls.update();
+}
+function resize(){
+  if(!renderer) return;
+  const el=$('#stage'), W=el.clientWidth, H=el.clientHeight;
+  renderer.setSize(W,H,false);
+  if(!camera) return;
+  if(camera.isPerspectiveCamera){ camera.aspect=W/H; }
+  else { const hh=camera.userData.hh, hw=hh*W/H; Object.assign(camera,{left:-hw,right:hw,top:hh,bottom:-hh}); }
+  camera.updateProjectionMatrix();
+  if(OV.pts) ovRealign(); else if(!$('#ov').hidden){ ovFit(); ovUpdate(); }
+}
+
+/* ---------- 疊圖、匯出、紀錄 ---------- */
+/* 疊圖狀態：base 把（翻轉後的）圖片像素座標映射到檢視台像素；微調滑桿再疊在上面 */
+const OV={nat:[1,1],s0:1,tx0:0,ty0:0,pts:null,pick:null,mode:'align',ang:null,cur:{s:1,tx:0,ty:0}};
+const stageWH=()=>{ const el=$('#stage'); return [el.clientWidth,el.clientHeight]; };
+const flipU=u=>$('#ovflip').checked ? OV.nat[0]-u : u;
+function ovFit(){
+  const [W,H]=stageWH(), [w,h]=OV.nat, s=Math.min(W/w,H/h);
+  Object.assign(OV,{s0:s,tx0:(W-w*s)/2,ty0:(H-h*s)/2});
+}
+function ovUpdate(){
+  const img=$('#ov'); if(img.hidden) return;
+  const [W,H]=stageWH(), k=+$('#ovsc').value, cx=W/2, cy=H/2;
+  const s=k*OV.s0, tx=cx+k*(OV.tx0-cx)+$('#ovx').value*W/100, ty=cy+k*(OV.ty0-cy)+$('#ovy').value*H/100;
+  OV.cur={s,tx,ty};
+  img.style.width=OV.nat[0]+'px'; img.style.height=OV.nat[1]+'px';
+  img.style.opacity=$('#ovop').value;
+  img.style.transform=`translate(${tx}px,${ty}px) scale(${s})`+($('#ovflip').checked?` translate(${OV.nat[0]}px,0) scaleX(-1)`:'');
+  drawDots();
+}
+function axleScreen(){
+  if(!camera||!veh) return null;
+  const g=solve(S), [W,H]=stageWH(), xs=g.axles.map(a=>a.x);
+  const pr=x=>{ const v=new THREE.Vector3(x*0.001,g.r*0.001,0).project(camera); return [(v.x+1)/2*W,(1-v.y)/2*H]; };
+  return [pr(xs[0]),pr(xs[xs.length-1])];
+}
+function ovRealign(){
+  if(!OV.pts||$('#ov').hidden||view!=='side') return;
+  const A=axleScreen(); if(!A) return;
+  let [p1,p2]=OV.pts, u1=flipU(p1[0]), u2=flipU(p2[0]);
+  if((A[1][0]-A[0][0])*(u2-u1)<0){ $('#ovflip').checked=!$('#ovflip').checked; u1=flipU(p1[0]); u2=flipU(p2[0]); }
+  const s=(A[1][0]-A[0][0])/(u2-u1);
+  if(!isFinite(s)||s<=0) return;
+  const vm=(p1[1]+p2[1])/2, ym=(A[0][1]+A[1][1])/2;
+  Object.assign(OV,{s0:s,tx0:A[0][0]-s*u1,ty0:ym-s*vm});
+  ovUpdate();
+}
+function drawDots(){
+  document.querySelectorAll('.ovdot').forEach(e=>e.remove());
+  const pts=OV.pick||[]; const {s,tx,ty}=OV.cur;
+  for(const p of pts){ const d=document.createElement('div'); d.className='ovdot'; d.style.left=(tx+s*flipU(p[0]))+'px'; d.style.top=(ty+s*p[1])+'px'; $('#stage').appendChild(d); }
+}
+function approachAngles(){
+  if(!OV.pts||!OV.ang) return null;
+  const [a,b]=OV.pts.map(p=>[flipU(p[0]),p[1]]);
+  const sx=Math.sign(b[0]-a[0])||1, k=Math.abs(b[0]-a[0])/S.wheelbase, r=S.wheelD/2*k, out={};
+  const calc=(C,P,dir)=>{ const u=dir*sx*(C[0]-P[0]), w=C[1]-P[1], R=Math.hypot(u,w);
+    if(u<=0) return [null,'點的位置不在車輪外側，請重新點。'];
+    if(R<=r) return [null,'點落在輪胎範圍內，請點車身最低點而非輪胎。'];
+    return [(Math.atan2(w,u)+Math.asin(r/R))*180/Math.PI,null]; };
+  for(const [key,C,dir] of [['front',a,1],['rear',b,-1]]){
+    const P=OV.ang[key]; if(!P) continue;
+    const [v,e]=calc(C,[flipU(P[0]),P[1]],dir); out[key]=v; if(e) out[key+'Err']=e;
+  }
+  return out;
+}
+function startAngle(){
+  if(!OV.pts){ $('#ovmsg').textContent='請先完成「兩點對齊輪心」並把輪徑調到跟圖上一樣大。'; return; }
+  if(view!=='side') setView('side');
+  OV.mode='angle'; OV.pick=[]; $('#ovpick').hidden=false; drawDots();
+  $('#ovmsg').textContent='第 1 點：請點圖上「車頭最低點」（前保桿或車架最低處）。（Esc 取消）';
+}
+function startPick(){
+  if($('#ov').hidden){ $('#ovmsg').textContent='請先載入圖片。'; return; }
+  if(view!=='side') setView('side');
+  OV.mode='align'; OV.ang=null; OV.pick=[]; $('#ovpick').hidden=false; drawDots();
+  $('#ovmsg').textContent='第 1 點：請點圖上的「前輪中心」。（Esc 取消）';
+}
+function endPick(msg){ $('#ovpick').hidden=true; OV.pick=null; drawDots(); $('#ovmsg').textContent=msg; }
+async function copyText(txt,btn){
+  const label=btn.textContent;
+  try{ await navigator.clipboard.writeText(txt); btn.textContent='已複製'; }
+  catch(e){ const fb=$('#fallback'); fb.hidden=false; fb.value=txt; fb.focus(); fb.select(); btn.textContent='請在下方手動複製'; showTab(btn.closest('.panel').dataset.p); }
+  setTimeout(()=>btn.textContent=label,1600);
+}
+function showTab(t){
+  document.querySelectorAll('#tablist button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.t===t)));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=p.dataset.p!==t);
+}
+function paramsJSON(){ const o={}; for(const k of Object.keys(PRESETS.utv4.s)) o[k]=S[k]; return JSON.stringify(o,null,1); }
+
+function wire(){
+  const pre=$('#presets');
+  for(const k in PRESETS){ const b=document.createElement('button'); b.className='chip'; b.dataset.p=k; b.textContent=PRESETS[k].name; b.onclick=()=>applyPreset(k); pre.appendChild(b); }
+  document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+  document.querySelectorAll('#tablist button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+  ['ovop','ovsc','ovx','ovy'].forEach(id=>$('#'+id).addEventListener('input',ovUpdate));
+  $('#ovflip').addEventListener('input',()=>{ if(OV.pts) ovRealign(); else ovUpdate(); });
+  $('#ovfile').addEventListener('change',e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const img=$('#ov'), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      OV.nat=[img.naturalWidth,img.naturalHeight]; OV.pts=null; OV.ang=null;
+      ['ovsc'].forEach(id=>$('#'+id).value=1); ['ovx','ovy'].forEach(id=>$('#'+id).value=0);
+      img.hidden=false; if(scene) setView('side'); ovFit(); ovUpdate(); addLog('疊圖',"",file.name);
+      $('#ovmsg').textContent='已載入。接著按「兩點對齊輪心」。';
+    };
+    img.src=url;
+  });
+  $('#bandon').addEventListener('change',()=>{ setView(view); });
+  $('#ovalign').onclick=startPick; $('#ovangle').onclick=startAngle;
+  $('#ovpick').addEventListener('click',e=>{
+    const r=$('#stage').getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top, {s,tx,ty}=OV.cur;
+    const up=(x-tx)/s, v=(y-ty)/s, u=$('#ovflip').checked?OV.nat[0]-up:up;
+    OV.pick.push([u,v]); drawDots();
+    if(OV.mode==='angle'){
+      if(OV.pick.length===1){ $('#ovmsg').textContent='第 2 點：請點圖上「車尾最低點」（後保桿或車架最低處）。'; return; }
+      OV.ang={front:OV.pick[0],rear:OV.pick[1]}; addLog('通過角','', 'measured'); scheduleBuild();
+      endPick('已量測通過角，請到「比例結果」查看。若之後再調輪徑，數值會自動更新。'); return;
+    }
+    if(OV.pick.length===1){ $('#ovmsg').textContent='第 2 點：請點圖上的「最後一個車輪中心」。'; return; }
+    OV.pts=OV.pick.slice(0,2); $('#ovsc').value=1; $('#ovx').value=0; $('#ovy').value=0;
+    ovRealign(); addLog('疊圖對齊','', 'two-point'); scheduleBuild();
+    endPick('已對齊：圖上前、後輪心已對到模型輪心。接著調整左側輪徑，讓模型輪子跟圖上輪子一樣大，再看「比例結果」。');
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&OV.pick) endPick('已取消對齊。'); });
+  $('#ovclear').onclick=()=>{ const img=$('#ov'); img.hidden=true; img.removeAttribute('src'); $('#ovfile').value=''; OV.pts=null; OV.ang=null; endPick(''); if(scene) setView(view); scheduleBuild(); };
+  $('#cpjson').onclick=e=>copyText(paramsJSON(),e.currentTarget);
+  $('#cpgh').onclick=e=>copyText(GH_SCRIPT,e.currentTarget);
+  $('#applyjson').onclick=()=>{
+    try{
+      const o=JSON.parse($('#jsonin').value); let n=0;
+      for(const k of Object.keys(PRESETS.utv4.s)) if(k in o){ S[k]=o[k]; n++; }
+      if(!n) throw new Error('沒有可辨識的參數');
+      addLog('套用 JSON','',n+' 項'); activePreset=null; lastLogged={...S};
+      syncControls(); scheduleBuild(true); $('#jsonmsg').textContent=`已套用 ${n} 個參數。`;
+    }catch(err){ $('#jsonmsg').textContent='JSON 格式錯誤：'+err.message; }
+  };
+  $('#cplog').onclick=e=>{
+    const head='time,participant,phase,param,from,to';
+    const q=v=>`"${String(v).replace(/"/g,'""')}"`;
+    copyText([head,...LOG.map(r=>[r.time,r.pid,r.phase,r.param,r.from,r.to].map(q).join(','))].join('\n'),e.currentTarget);
+  };
+  $('#clrlog').onclick=()=>{ LOG.length=0; renderLog(); };
+  new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+}
+
+buildControls(); wire(); syncControls();
+if(window.THREE && THREE.OrbitControls){ initThree(); build(); }
+else { renderPanels(); $('#loadmsg').textContent='3D 引擎載入失敗，請重新整理。檢查與尺寸仍可使用。'; }
+</script>
+</body>
+</html>

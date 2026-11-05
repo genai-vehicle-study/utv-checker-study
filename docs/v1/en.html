@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UTV Proportion Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: parameter column on the left + fixed 3D viewer on the right (tabs below the viewer) */
+:root{
+  --bg:#e8eaec; --panel:#f5f6f7; --raise:#ffffff; --ink:#15191e; --muted:#5a636e; --line:#cdd2d8;
+  --accent:#1c5d87; --accent-ink:#ffffff; --accent-soft:#dbe8f1;
+  --stage:#dde1e5; --grid:#b5bcc4; --grid-major:#8f98a2; --clay:#b9a386; --figure:#1c5d87;
+  --ok:#2c7a4b; --warn:#a86c12; --fail:#b3362d; --info:#5a636e;
+  --f-display:"Archivo","Noto Sans TC",system-ui,sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131619; --panel:#1b1f23; --raise:#22272c; --ink:#e6e9ed; --muted:#98a1ab; --line:#2f363d;
+    --accent:#72b4de; --accent-ink:#0b1822; --accent-soft:#1d3444;
+    --stage:#181c20; --grid:#2c3238; --grid-major:#434b54; --clay:#a8947a; --figure:#72b4de;
+    --ok:#5ec48c; --warn:#e2aa4c; --fail:#f0736a; --info:#98a1ab; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131619; --panel:#1b1f23; --raise:#22272c; --ink:#e6e9ed; --muted:#98a1ab; --line:#2f363d;
+  --accent:#72b4de; --accent-ink:#0b1822; --accent-soft:#1d3444;
+  --stage:#181c20; --grid:#2c3238; --grid-major:#434b54; --clay:#a8947a; --figure:#72b4de;
+  --ok:#5ec48c; --warn:#e2aa4c; --fail:#f0736a; --info:#98a1ab; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:0 16px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;padding-block:14px 12px}
+.brand h1{font-family:var(--f-display);font-stretch:78%;font-weight:750;font-size:26px;letter-spacing:.01em;margin:0;line-height:1.05;text-wrap:balance}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.presets span{font-size:12px;color:var(--muted);letter-spacing:.06em;margin-right:4px}
+.chip{border:1px solid var(--line);background:var(--raise);border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+main{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:16px;align-items:start}
+aside.controls{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px 16px 16px;min-width:0}
+.group{display:grid;gap:10px;padding-top:14px}
+.group h2{font-family:var(--f-display);font-stretch:80%;font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.row label{font-size:13.5px;font-weight:500}
+.row .hint{grid-column:1/-1;font-size:11.5px;color:var(--muted);margin-top:-2px}
+.num{display:flex;align-items:baseline;gap:4px}
+.num input{width:74px;text-align:right;font-family:var(--f-mono);font-size:13px;background:var(--raise);border:1px solid var(--line);border-radius:5px;padding:2px 6px;font-variant-numeric:tabular-nums}
+.num em{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--muted);width:22px}
+.row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);margin:0}
+.seg{grid-column:1/-1;display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--raise)}
+.seg button{flex:1;border:0;background:transparent;padding:6px 4px;cursor:pointer;font-size:13px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:500;cursor:pointer}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+
+.bench{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);display:flex;flex-direction:column;gap:10px;height:calc(100vh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-width:0}
+.stage{position:relative;flex:1 1 auto;min-height:320px;border-radius:10px;overflow:hidden;background:var(--stage);border:1px solid var(--line)}
+.stage canvas{display:block;width:100%;height:100%}
+#ov{position:absolute;left:0;top:0;max-width:none;pointer-events:none;transform-origin:0 0;z-index:1}
+#ovpick{position:absolute;inset:0;z-index:3;cursor:crosshair}
+.ovdot{position:absolute;z-index:4;width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid #d62828;border-radius:50%;pointer-events:none;background:rgba(214,40,40,.25)}
+.views{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;z-index:2}
+.views button{border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:4px 10px;font-size:12.5px;cursor:pointer}
+.views button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.readout{position:absolute;right:10px;bottom:10px;z-index:2;display:flex;gap:14px;font-family:var(--f-mono);font-size:12px;background:color-mix(in srgb,var(--raise) 86%,transparent);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.readout b{font-weight:500}
+.readout span{color:var(--muted)}
+.bandlegend{position:absolute;left:10px;bottom:10px;z-index:4;max-width:min(520px,calc(100% - 20px));font-size:12px;line-height:1.45;background:color-mix(in srgb,var(--raise) 90%,transparent);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+.bandlegend i{display:inline-block;width:12px;height:12px;background:rgba(31,157,85,.35);border:1px solid #1f9d55;margin-right:6px;vertical-align:-1px}
+.statusdot{position:absolute;left:10px;bottom:10px;z-index:2;font-size:12px;background:color-mix(in srgb,var(--raise) 86%,transparent);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+
+.tabs{flex:0 0 auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;max-height:40%;min-height:0}
+.tablist{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:6px 8px 0;overflow-x:auto}
+.tablist button{border:0;background:transparent;padding:7px 12px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;color:var(--muted)}
+.tablist button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
+.tablist .count{font-family:var(--f-mono);font-size:11px;margin-left:4px;padding:0 5px;border-radius:8px;background:var(--line);color:var(--ink)}
+.tablist .count.bad{background:var(--fail);color:#fff}
+.tablist .count.meh{background:var(--warn);color:#fff}
+.panel{padding:12px 14px;overflow:auto;min-height:0}
+
+.checks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.checks li{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start}
+.pill{font-size:11.5px;text-align:center;border-radius:4px;padding:1px 0;font-weight:500;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)} .pill.fail{color:var(--fail);background:color-mix(in srgb,var(--fail) 12%,transparent)} .pill.info{color:var(--info)}
+.checks b{font-weight:500}
+.checks p{margin:1px 0 0;color:var(--muted);font-size:12.5px}
+.src{font-size:11.5px;color:var(--muted);margin-top:10px}
+
+.dims{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 18px;margin:0}
+.dims div{border-top:1px solid var(--line);padding-top:6px}
+.dims dt{font-size:12px;color:var(--muted)}
+.dims dd{margin:0;font-family:var(--f-mono);font-size:16px;font-variant-numeric:tabular-nums}
+.dims dd small{font-size:11px;color:var(--muted)}
+
+.form{display:grid;gap:10px;max-width:640px}
+.form .line{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.form label{font-size:13px}
+.form input[type=range]{accent-color:var(--accent);flex:1;min-width:120px}
+.btn{border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:hover{border-color:var(--accent)}
+textarea{width:100%;min-height:90px;font-family:var(--f-mono);font-size:12px;background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:8px}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+ol.steps{margin:0;padding-left:20px;font-size:13px;display:grid;gap:4px}
+code{font-family:var(--f-mono);font-size:12px;background:var(--accent-soft);padding:0 4px;border-radius:3px}
+.log{font-family:var(--f-mono);font-size:12px;border-collapse:collapse;width:100%}
+.log td,.log th{text-align:left;padding:3px 8px 3px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+.log th{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:12px}
+.tablewrap{overflow-x:auto}
+
+@media (max-width: 900px){
+  main{grid-template-columns:minmax(0,1fr)}
+  .bench{position:static;height:auto;order:-1}
+  .stage{height:56vh;flex:none}
+  .tabs{max-height:none}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>UTV Proportion Checker</h1>
+    <p>Overlay your final side view on the reference model to check whether its proportions are plausible. The reference model follows the manufacturer specifications of the Polaris RZR XP 4 1000; the occupant is 185 cm tall.</p>
+  </div>
+  <div class="presets" id="presets"><span>Presets</span></div>
+</header>
+
+<main>
+  <aside class="controls" id="controls" aria-label="Parameters"></aside>
+
+  <section class="bench">
+    <div class="stage" id="stage">
+      <div class="views" id="views">
+        <button data-v="3q">Perspective</button>
+        <button data-v="side" aria-pressed="true">Side</button>
+        <button data-v="front">Front</button>
+        <button data-v="top">Top</button>
+      </div>
+      <img id="ov" alt="" hidden>
+      <div id="ovpick" hidden></div>
+      <div class="readout" id="readout"></div>
+      <div class="bandlegend" id="bandlegend" hidden><i></i>Green zones: proportion ranges of four production 64-inch-class four-seat UTVs. The rear wheel center, roof, front end and rear end should fall inside their zones.</div>
+      <div class="statusdot" id="loadmsg">Loading 3D engine…</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tablist" role="tablist" id="tablist">
+        <button role="tab" data-t="overlay" aria-selected="true">Overlay</button>
+        <button role="tab" data-t="checks" aria-selected="false">Results<span class="count" id="chkcount">0</span></button>
+        <button role="tab" data-t="dims" aria-selected="false" hidden>Dimensions</button>
+        <button role="tab" data-t="export" aria-selected="false" hidden>Export GH</button>
+        <button role="tab" data-t="log" aria-selected="false" hidden>Research log<span class="count" id="logcount">0</span></button>
+      </div>
+
+      <div class="panel" data-p="checks" hidden>
+        <ul class="checks" id="checks"></ul>
+        <p class="src">Reference model: Polaris RZR XP 4 1000 (2027) manufacturer specifications — overall length 3,754, width 1,626, height 1,905, wheelbase 2,972, ground clearance 368, tire diameter 762 mm. Proportion ranges are derived from four-seat models no wider than 64 in: RZR XP 4 1000, Honda Talon 1000X-4, Can-Am Maverick Sport MAX and Polaris General XP 4 1000. No regulation prescribes UTV proportions, so the ranges are for comparison only; six-wheel ranges are estimates.</p>
+      </div>
+
+      <div class="panel" data-p="dims" hidden>
+        <dl class="dims" id="dims"></dl>
+      </div>
+
+      <div class="panel" data-p="overlay">
+        <div class="form">
+          <p class="note">Load an AI-generated side view and overlay it on the model's side view to compare proportions. Steps: ① Load the image ② Click “Align wheel centers”, then click the <b>front wheel center</b> and the <b>last wheel center</b> on the image ③ Adjust “Wheel diameter” on the left (for six wheels also “Tandem axle gap”) until the model wheels overlap the wheels in the image; the green zones show the production-vehicle ranges based on that diameter ④ (Optional) Click “Measure angles” and click the lowest points of the front and rear ⑤ Open “Results” to read the values.</p>
+          <div class="line"><input type="file" id="ovfile" accept="image/*"><button class="btn primary" id="ovalign">Align wheel centers</button><button class="btn" id="ovangle">Measure angles</button><button class="btn" id="ovclear">Remove image</button></div>
+          <p class="note" id="ovmsg" role="status"></p>
+          <div class="line"><label for="ovop">Opacity</label><input type="range" id="ovop" min="0" max="1" step="0.01" value="0.5"></div>
+          <div class="line"><label for="ovsc">Fine scale</label><input type="range" id="ovsc" min="0.5" max="2" step="0.005" value="1"></div>
+          <div class="line"><label for="ovx">Fine left/right</label><input type="range" id="ovx" min="-25" max="25" step="0.1" value="0"></div>
+          <div class="line"><label for="ovy">Fine up/down</label><input type="range" id="ovy" min="-25" max="25" step="0.1" value="0"></div>
+          <label class="toggle"><input type="checkbox" id="ovflip"> Flip horizontally (vehicle facing right)</label>
+          <label class="toggle"><input type="checkbox" id="bandon" checked> Show proportion ranges (green zones, side view only)</label>
+        </div>
+      </div>
+
+      <div class="panel" data-p="export" hidden>
+        <div class="form">
+          <div class="line">
+            <button class="btn primary" id="cpjson">Copy parameter JSON</button>
+            <button class="btn" id="cpgh">Copy GH Python script</button>
+          </div>
+          <ol class="steps">
+            <li>Place a Python component in Grasshopper (Python 3 Script in Rhino 8, GhPython in Rhino 7) and paste the script.</li>
+            <li>Add an input <code>params_json</code> (type str), connect a Panel and paste the copied JSON into it.</li>
+            <li>Add outputs <code>body</code> <code>canopy</code> <code>wheels</code> <code>figure</code> <code>profile</code> <code>info</code>.</li>
+            <li>To adjust with sliders in GH: add inputs named after parameters (e.g. <code>wheelbase</code>, <code>wheelCount</code>) and connect Number Sliders; they override the JSON values.</li>
+          </ol>
+          <label for="jsonin">Apply JSON (paste back from GH or another participant's record)</label>
+          <textarea id="jsonin" placeholder='{"wheelCount":4,"wheelbase":1580, ...}'></textarea>
+          <div class="line"><button class="btn" id="applyjson">Apply</button><span class="note" id="jsonmsg"></span></div>
+          <textarea id="fallback" hidden readonly aria-label="Manual copy area"></textarea>
+        </div>
+      </div>
+
+      <div class="panel" data-p="log" hidden>
+        <div class="form">
+          <div class="line">
+            <label for="pid">Participant</label><input id="pid" value="P01" style="width:80px" class="btn">
+            <label for="phase">Phase</label><input id="phase" value="Task 1" style="width:120px" class="btn">
+            <button class="btn primary" id="cplog">Copy log CSV</button>
+            <button class="btn" id="clrlog">Clear</button>
+          </div>
+          <p class="note">Each slider release, option change or preset is logged (time, parameter, old value, new value). The log lives only in this tab and is lost on reload; copy it out after each participant.</p>
+          <div class="tablewrap"><table class="log"><thead><tr><th>Time</th><th>Participant</th><th>Phase</th><th>Parameter</th><th>From</th><th>To</th></tr></thead><tbody id="logbody"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const GH_SCRIPT = "# -*- coding: utf-8 -*-\n\"\"\"\nVehicle proportion rig · parametric vehicle massing for Grasshopper\nFor: Rhino 7 GhPython component, Rhino 8 Python 3 Script component. Units: mm.\nAxes: X = length (front axle at X=0, positive toward the rear), Y = width, Z = height (ground at Z=0).\n\nInputs (all optional; unconnected inputs use defaults)\n  params_json : str  parameter JSON copied from the web page's Export tab; paste it into a Panel\n  You can also add inputs named after parameters and connect Number Sliders. Priority:\n  individual inputs > params_json > defaults\n  Available parameter names:\n    wheelCount (2/3/4/6)   layout3 (\"tadpole\"/\"delta\")   layout6 (\"front\"/\"rear\")\n    wheelbase  axleGap  trackF  trackR  wheelD  tireW\n    ohF  ohR  bodyW  belt  clear  nose (0-1)\n    cabin (\"closed\"/\"open\"/\"rider\")  cabinPos (0-1)  cabinLen (0-1)\n    roof  seatH  sitH\n\nOutputs (create outputs with these names on the component)\n  body     body mass Brep\n  canopy   list of cabin glass (closed) or roll hoop (open) Breps\n  wheels   list of tire Breps\n  figure   list of occupant mannequin Breps (human scale reference)\n  profile  body side-profile curve (for comparison with AI-generated images)\n  info     dimension summary text\n\"\"\"\nimport json\nimport math\nimport Rhino.Geometry as rg\n\ntry:\n    import scriptcontext as sc\n    TOL = sc.doc.ModelAbsoluteTolerance\nexcept Exception:\n    TOL = 0.01\n\nDEFAULTS = {\n    \"wheelCount\": 4, \"layout3\": \"tadpole\", \"layout6\": \"front\",\n    \"wheelbase\": 2750.0, \"axleGap\": 900.0, \"trackF\": 1570.0, \"trackR\": 1580.0,\n    \"wheelD\": 660.0, \"tireW\": 225.0,\n    \"ohF\": 950.0, \"ohR\": 1050.0, \"bodyW\": 1830.0, \"belt\": 1000.0, \"clear\": 140.0, \"nose\": 0.55,\n    \"cabin\": \"closed\", \"cabinPos\": 0.5, \"cabinLen\": 0.45, \"roof\": 1450.0,\n    \"seatH\": 450.0, \"sitH\": 930.0,\n}\nTEXT_KEYS = (\"layout3\", \"layout6\", \"cabin\")\nARCH_GAP = 40.0  # clearance between wheel arch and tire\n\n\ndef read_params():\n    p = dict(DEFAULTS)\n    g = globals()\n    js = g.get(\"params_json\")\n    if js:\n        try:\n            p.update(json.loads(str(js)))\n        except Exception as e:\n            raise ValueError(u\"params_json could not be parsed: {0}\".format(e))\n    for k in DEFAULTS:\n        v = g.get(k)\n        if v is not None:\n            p[k] = v\n    for k in DEFAULTS:\n        if k in TEXT_KEYS:\n            p[k] = str(p[k])\n        elif k == \"wheelCount\":\n            p[k] = int(p[k])\n        else:\n            p[k] = float(p[k])\n    return p\n\n\ndef axles_of(p):\n    wc, wb = p[\"wheelCount\"], p[\"wheelbase\"]\n\n    def pair(t):\n        return [-t / 2.0, t / 2.0]\n\n    if wc == 2:\n        return [(0.0, [0.0]), (wb, [0.0])]\n    if wc == 3:\n        if p[\"layout3\"] == \"tadpole\":\n            return [(0.0, pair(p[\"trackF\"])), (wb, [0.0])]\n        return [(0.0, [0.0]), (wb, pair(p[\"trackR\"]))]\n    if wc == 4:\n        return [(0.0, pair(p[\"trackF\"])), (wb, pair(p[\"trackR\"]))]\n    if p[\"layout6\"] == \"front\":\n        return [(0.0, pair(p[\"trackF\"])), (p[\"axleGap\"], pair(p[\"trackF\"])), (wb, pair(p[\"trackR\"]))]\n    return [(0.0, pair(p[\"trackF\"])), (wb - p[\"axleGap\"], pair(p[\"trackR\"])), (wb, pair(p[\"trackR\"]))]\n\n\ndef solve(p):\n    \"\"\"Body side profile: lower edge of lines plus wheel-arch arcs; upper edge a smooth curve through control points.\"\"\"\n    r = p[\"wheelD\"] / 2.0\n    ra = r + ARCH_GAP\n    x0 = -p[\"ohF\"]\n    x1 = p[\"wheelbase\"] + p[\"ohR\"]\n    L = x1 - x0\n    zb = p[\"clear\"]\n    hb = max(p[\"belt\"], zb + 100.0)\n    D = hb - zb\n    sx = x0 + 0.04 * L\n    ex = x1 - 0.06 * L\n\n    axles = axles_of(p)\n    arches = []\n    for (ax, ys) in axles:\n        covered = any(abs(y) - p[\"tireW\"] / 2.0 < p[\"bodyW\"] / 2.0 for y in ys)\n        dz = zb - r\n        if covered and abs(dz) < ra:\n            dx = math.sqrt(ra * ra - dz * dz)\n            a, b = ax - dx, ax + dx\n            if b > sx and a < ex:\n                arches.append((ax, a, b))\n    arches.sort()\n\n    segs = []\n    start = (sx, zb)\n    cur = (sx, zb)\n    prev_end = -1e9\n    for (cx, a, b) in arches:\n        if a < prev_end:\n            continue  # overlaps the previous arch; skip\n        za = zb\n        zbb = zb\n        if a < sx:\n            if segs:\n                continue\n            a = sx\n            za = r + math.sqrt(max(ra * ra - (sx - cx) ** 2, 0.0))\n            start = (sx, za)\n            cur = start\n        elif a - cur[0] > 1e-6:\n            segs.append((\"line\", cur, (a, zb)))\n        if b > ex:\n            b = ex\n            zbb = r + math.sqrt(max(ra * ra - (ex - cx) ** 2, 0.0))\n        segs.append((\"arc\", cx, r, ra, (a, za), (b, zbb)))\n        cur = (b, zbb)\n        prev_end = b\n    if ex - cur[0] > 1e-6:\n        segs.append((\"line\", cur, (ex, zb)))\n        cur = (ex, zb)\n    end = cur\n\n    nose = p[\"nose\"]\n    top = [\n        end,\n        (x1, max(zb + D * 0.45, end[1] + 20.0)),\n        (x1 - 0.015 * L, hb - D * 0.05),\n        (x1 - 0.12 * L, hb),\n        (x0 + 0.40 * L, hb),\n        (x0 + 0.18 * L, zb + D * (nose + (1.0 - nose) * 0.75)),\n        (x0, max(zb + D * nose, start[1] + 20.0)),\n        start,\n    ]\n    return {\"r\": r, \"ra\": ra, \"x0\": x0, \"x1\": x1, \"L\": L, \"zb\": zb, \"hb\": hb, \"D\": D,\n            \"axles\": axles, \"segs\": segs, \"top\": top}\n\n\ndef figure_of(p, g):\n    cab = p[\"cabin\"]\n    cxC = g[\"x0\"] + p[\"cabinPos\"] * g[\"L\"]\n    cl = p[\"cabinLen\"] * g[\"L\"]\n    headX = cxC + 0.12 * cl if cab == \"closed\" else cxC\n    headR = 105.0 if cab == \"closed\" else 135.0\n    headTop = p[\"seatH\"] + p[\"sitH\"]\n    head = (headX, headTop - headR)\n    off = {\"open\": -380.0, \"closed\": -220.0, \"rider\": 230.0}.get(cab, -220.0)\n    hip = (headX + off, p[\"seatH\"] + 90.0)\n    sh = (hip[0] + (head[0] - hip[0]) * 0.78, hip[1] + (head[1] - hip[1]) * 0.78)\n    if cab == \"rider\":\n        knee = (hip[0] - 380.0, p[\"seatH\"] - 20.0)\n        foot = (hip[0] - 280.0, max(g[\"zb\"] + 80.0, p[\"seatH\"] - 470.0))\n    else:\n        knee = (hip[0] - 430.0, p[\"seatH\"] + (200.0 if cab == \"closed\" else 250.0))\n        foot = (hip[0] - 880.0, max(g[\"zb\"] + 60.0, p[\"seatH\"] - 180.0))\n    y = -0.2 * p[\"bodyW\"] if (cab == \"closed\" and p[\"bodyW\"] > 1300) else 0.0\n    return {\"cxC\": cxC, \"cl\": cl, \"headX\": headX, \"headR\": headR, \"headTop\": headTop,\n            \"head\": head, \"hip\": hip, \"sh\": sh, \"knee\": knee, \"foot\": foot, \"y\": y}\n\n\ndef P(x, z, y=0.0):\n    return rg.Point3d(x, y, z)\n\n\ndef extrude_profile(crv, width):\n    srf = rg.Surface.CreateExtrusion(crv, rg.Vector3d(0, width, 0))\n    brep = srf.ToBrep()\n    capped = brep.CapPlanarHoles(TOL)\n    if capped:\n        brep = capped\n    brep.Translate(rg.Vector3d(0, -width / 2.0, 0))\n    return brep\n\n\ndef body_profile(g):\n    crvs = []\n    for s in g[\"segs\"]:\n        if s[0] == \"line\":\n            crvs.append(rg.LineCurve(P(*s[1]), P(*s[2])))\n        else:\n            _, cx, cz, ra, a, b = s\n            t0 = math.atan2(a[1] - cz, a[0] - cx)\n            t1 = math.atan2(b[1] - cz, b[0] - cx)\n            if t0 < t1:\n                t0 += 2 * math.pi\n            tm = (t0 + t1) / 2.0\n            mid = P(cx + ra * math.cos(tm), cz + ra * math.sin(tm))\n            crvs.append(rg.ArcCurve(rg.Arc(P(*a), mid, P(*b))))\n    top_pts = [P(x, z) for (x, z) in g[\"top\"]]\n    crvs.append(rg.Curve.CreateInterpolatedCurve(top_pts, 3))\n    joined = rg.Curve.JoinCurves(crvs, TOL * 10)\n    crv = joined[0]\n    if not crv.IsClosed:\n        crv.MakeClosed(TOL * 10)\n    return crv\n\n\ndef build():\n    p = read_params()\n    g = solve(p)\n    f = figure_of(p, g)\n    r, hb = g[\"r\"], g[\"hb\"]\n\n    prof = body_profile(g)\n    body_brep = extrude_profile(prof, p[\"bodyW\"])\n\n    # cabin\n    canopy_out = []\n    if p[\"cabin\"] == \"closed\" and p[\"roof\"] > hb + 80:\n        xc0 = f[\"cxC\"] - f[\"cl\"] / 2.0\n        xc1 = f[\"cxC\"] + f[\"cl\"] / 2.0\n        cl, roof, zc = f[\"cl\"], p[\"roof\"], hb - 20.0\n        pts = [P(xc0, zc), P(xc0 + 0.38 * cl, roof - 15), P(xc0 + 0.62 * cl, roof),\n               P(xc1 - 0.18 * cl, roof - 40), P(xc1, zc)]\n        top = rg.Curve.CreateInterpolatedCurve(pts, 3)\n        base = rg.LineCurve(P(xc1, zc), P(xc0, zc))\n        gh = rg.Curve.JoinCurves([top, base], TOL * 10)[0]\n        cw = min(p[\"bodyW\"] * 0.8, p[\"bodyW\"] - 80)\n        canopy_out.append(extrude_profile(gh, cw))\n    elif p[\"cabin\"] == \"open\":\n        xh = f[\"headX\"] + 180.0\n        hr = min(p[\"bodyW\"] * 0.75, 620.0) / 2.0\n        if p[\"roof\"] - hr < hb:\n            hr = max(80.0, p[\"roof\"] - hb)\n        legs_top = p[\"roof\"] - hr\n        pts_l = [P(xh, hb - 30, -hr), P(xh, legs_top, -hr)]\n        pts_r = [P(xh, legs_top, hr), P(xh, hb - 30, hr)]\n        arc = rg.ArcCurve(rg.Arc(P(xh, legs_top, -hr), P(xh, p[\"roof\"], 0), P(xh, legs_top, hr)))\n        rail = rg.Curve.JoinCurves([rg.LineCurve(*pts_l), arc, rg.LineCurve(*pts_r)], TOL * 10)[0]\n        pipes = rg.Brep.CreatePipe(rail, 16.0, False, rg.PipeCapMode.Round, True, TOL, 0.02)\n        if pipes:\n            canopy_out.extend(pipes)\n\n    # tires\n    wheel_out = []\n    for (ax, ys) in g[\"axles\"]:\n        for y in ys:\n            pl = rg.Plane(rg.Point3d(ax, y - p[\"tireW\"] / 2.0, r), rg.Vector3d(0, 1, 0))\n            wheel_out.append(rg.Cylinder(rg.Circle(pl, r), p[\"tireW\"]).ToBrep(True, True))\n\n    # occupant mannequin\n    fig_out = []\n    y = f[\"y\"]\n    fig_out.append(rg.Sphere(P(f[\"head\"][0], f[\"head\"][1], y), f[\"headR\"]).ToBrep())\n    limbs = [(f[\"hip\"], f[\"sh\"], 140.0), (f[\"hip\"], f[\"knee\"], 65.0), (f[\"knee\"], f[\"foot\"], 55.0)]\n    for (a, b, rad) in limbs:\n        rail = rg.LineCurve(P(a[0], a[1], y), P(b[0], b[1], y))\n        pipes = rg.Brep.CreatePipe(rail, rad, False, rg.PipeCapMode.Round, True, TOL, 0.02)\n        if pipes:\n            fig_out.extend(pipes)\n\n    # dimension summary\n    xs = [ax for (ax, _) in g[\"axles\"]]\n    front = min(g[\"x0\"], min(xs) - r)\n    rear = max(g[\"x1\"], max(xs) + r)\n    tracks = [abs(yy) * 2 for (_, ys) in g[\"axles\"] for yy in ys]\n    width = max(p[\"bodyW\"], max(tracks) + p[\"tireW\"])\n    height = max(hb, f[\"headTop\"], p[\"roof\"] if p[\"cabin\"] != \"rider\" else 0)\n    length = rear - front\n    lines = [\n        u\"Length {0:.0f} mm\".format(length),\n        u\"Width {0:.0f} mm\".format(width),\n        u\"Height {0:.0f} mm\".format(height),\n        u\"Wheelbase {0:.0f} mm ({1:.0%} of length)\".format(p[\"wheelbase\"], p[\"wheelbase\"] / length),\n        u\"Wheel dia. / height = {0:.2f}\".format(p[\"wheelD\"] / height),\n        u\"Head top above ground {0:.0f} mm\".format(f[\"headTop\"]),\n    ]\n    return body_brep, canopy_out, wheel_out, fig_out, prof, \"\\n\".join(lines)\n\n\nbody, canopy, wheels, figure, profile, info = build()\n";
+
+/* ---------- Parameters and presets ---------- */
+const PRESETS = {
+  utv4:  {name:'4 wheels', s:{wheelCount:4,layout3:'tadpole',layout6:'rear',wheelbase:2972,axleGap:870,trackF:1372,trackR:1372,wheelD:762,tireW:254,ohF:401,ohR:381,bodyW:1100,belt:950,clear:368,nose:0.45,cabin:'cage',cabinPos:0.38,cabinLen:0.45,roof:1905,seatH:600,sitH:965,fsae:false,rows:2,rowGap:1000,rearRise:80,utv:true}},
+  utv6:  {name:'6 wheels', s:{wheelCount:6,layout3:'tadpole',layout6:'rear',wheelbase:3842,axleGap:870,trackF:1372,trackR:1372,wheelD:762,tireW:254,ohF:401,ohR:381,bodyW:1100,belt:950,clear:368,nose:0.45,cabin:'cage',cabinPos:0.30,cabinLen:0.45,roof:1905,seatH:600,sitH:965,fsae:false,rows:2,rowGap:1000,rearRise:80,utv:true}},
+};
+for(const k in PRESETS) PRESETS[k].s={rows:1,rowGap:1000,rearRise:0,utv:false,...PRESETS[k].s};
+let S = {...PRESETS.utv4.s};
+let activePreset = 'utv4';
+
+const hasPairF = s => s.wheelCount===4 || s.wheelCount===6 || (s.wheelCount===3 && s.layout3==='tadpole');
+const hasPairR = s => s.wheelCount===4 || s.wheelCount===6 || (s.wheelCount===3 && s.layout3==='delta');
+const CTRL_ALL = [
+  {g:'Wheels'},
+  {k:'wheelCount',t:'seg',label:'Wheel count',opts:[[2,'2'],[3,'3'],[4,'4'],[6,'6']]},
+  {k:'layout3',t:'seg',label:'3-wheel layout',opts:[['tadpole','2 front, 1 rear'],['delta','1 front, 2 rear']],show:s=>s.wheelCount===3},
+  {k:'layout6',t:'seg',label:'6-wheel layout',opts:[['front','Front tandem'],['rear','Rear tandem']],show:s=>s.wheelCount===6},
+  {k:'wheelbase',label:'Wheelbase',min:800,max:4500,step:5,hint:'Distance from the first to the last axle'},
+  {k:'axleGap',label:'Tandem axle gap',min:300,max:2000,step:5,show:s=>s.wheelCount===6},
+  {k:'trackF',label:'Front track',min:400,max:2200,step:5,show:hasPairF},
+  {k:'trackR',label:'Rear track',min:400,max:2200,step:5,show:hasPairR},
+  {k:'wheelD',label:'Tire diameter',min:250,max:1200,step:5},
+  {k:'tireW',label:'Tire width',min:40,max:400,step:5},
+  {g:'Body'},
+  {k:'ohF',label:'Front overhang',min:0,max:1600,step:5,hint:'Front axle to front end'},
+  {k:'ohR',label:'Rear overhang',min:0,max:1600,step:5,hint:'Rear axle to rear end'},
+  {k:'bodyW',label:'Body width',min:300,max:2600,step:5,hint:'Wheels are exposed when the body is narrower than the track; wheel arches are cut when wider'},
+  {k:'belt',label:'Beltline height',min:300,max:2500,step:5,hint:'Height of the main body top above ground'},
+  {k:'clear',label:'Ground clearance',min:20,max:600,step:1},
+  {k:'nose',label:'Nose height',min:5,max:95,step:1,scale:100,unit:'%',hint:'Where the nose tip sits within the body height'},
+  {g:'Cabin and occupants'},
+  {k:'cabin',t:'seg',label:'Cabin type',opts:[['cage','Roll cage'],['closed','Closed'],['open','Open'],['rider','Rider']]},
+  {k:'rows',t:'seg',label:'Seat rows',opts:[[1,'1 row, 2 seats'],[2,'2 rows, 4 seats']],show:s=>s.cabin==='cage'},
+  {k:'rowGap',label:'Row spacing',min:600,max:1600,step:5,show:s=>s.cabin==='cage'&&s.rows===2,hint:'Horizontal distance from front-row head to rear-row head'},
+  {k:'rearRise',label:'Rear row rise',min:0,max:300,step:5,show:s=>s.cabin==='cage'&&s.rows===2,hint:'How much higher the rear seats are than the front (for forward view)'},
+  {k:'cabinPos',label:'Cabin position',min:10,max:90,step:1,scale:100,unit:'%',hint:'0% = front end, 100% = rear end'},
+  {k:'cabinLen',label:'Cabin length',min:15,max:70,step:1,scale:100,unit:'%',show:s=>s.cabin==='closed',hint:'Share of the body length'},
+  {k:'roof',label:s=>s.cabin==='open'||s.cabin==='cage'?'Cage top height':'Roof height',min:400,max:3000,step:5,show:s=>s.cabin!=='rider'},
+  {k:'seatH',label:'Seat height',min:50,max:1200,step:5},
+  {k:'sitH',label:'Sitting height',min:700,max:1100,step:5,hint:'Seat to top of head; about 965 mm for a 185 cm person'},
+  {k:'utv',t:'toggle',label:'Apply UTV task checks (4 seats, width ≤ 64 in, 185 cm occupant)'},
+  {k:'fsae',t:'toggle',label:'Apply FSAE rule checks'},
+];
+
+const CTRL = [
+  {g:'Matching parameters'},
+  {k:'wheelD',label:'Wheel diameter',min:400,max:1200,step:5,hint:'After aligning wheel centers, match the size of the wheels in the image'},
+  {k:'axleGap',label:'Tandem axle gap',min:500,max:2000,step:5,show:s=>s.wheelCount===6,hint:'Move the model middle wheel onto the middle wheel in the image'},
+];
+/* ---------- Geometry solver (same logic as the GH script) ---------- */
+const ARCH_GAP = 40;
+function axlesOf(s){
+  const wb=s.wheelbase, pair=t=>[-t/2,t/2];
+  if(s.wheelCount===2) return [{x:0,ys:[0]},{x:wb,ys:[0]}];
+  if(s.wheelCount===3) return s.layout3==='tadpole' ? [{x:0,ys:pair(s.trackF)},{x:wb,ys:[0]}] : [{x:0,ys:[0]},{x:wb,ys:pair(s.trackR)}];
+  if(s.wheelCount===4) return [{x:0,ys:pair(s.trackF)},{x:wb,ys:pair(s.trackR)}];
+  return s.layout6==='front'
+    ? [{x:0,ys:pair(s.trackF)},{x:s.axleGap,ys:pair(s.trackF)},{x:wb,ys:pair(s.trackR)}]
+    : [{x:0,ys:pair(s.trackF)},{x:wb-s.axleGap,ys:pair(s.trackR)},{x:wb,ys:pair(s.trackR)}];
+}
+function solve(s){
+  const r=s.wheelD/2, ra=r+ARCH_GAP, x0=-s.ohF, x1=s.wheelbase+s.ohR, L=x1-x0;
+  const zb=s.clear, hb=Math.max(s.belt,zb+100), D=hb-zb, sx=x0+0.04*L, ex=x1-0.06*L;
+  const axles=axlesOf(s);
+  let arches=[], overlap=false, archTop=0;
+  for(const a of axles){
+    a.covered = a.ys.some(y=>Math.abs(y)-s.tireW/2 < s.bodyW/2);
+    const dz=zb-r;
+    if(a.covered && Math.abs(dz)<ra){
+      const dx=Math.sqrt(ra*ra-dz*dz), A=a.x-dx, B=a.x+dx;
+      if(B>sx && A<ex) arches.push({cx:a.x,a:A,b:B});
+    }
+  }
+  arches.sort((p,q)=>p.cx-q.cx);
+  const segs=[]; let start=[sx,zb], cur=[sx,zb], prevEnd=-1e9;
+  for(const ar of arches){
+    let a=ar.a, b=ar.b, za=zb, zbb=zb;
+    if(a<prevEnd){ overlap=true; continue; }
+    if(a<sx){
+      if(segs.length) continue;
+      a=sx; za=r+Math.sqrt(Math.max(ra*ra-(sx-ar.cx)**2,0)); start=[sx,za]; cur=start;
+    } else if(a-cur[0]>1e-6){ segs.push({type:'line',p0:cur,p1:[a,zb]}); }
+    if(b>ex){ b=ex; zbb=r+Math.sqrt(Math.max(ra*ra-(ex-ar.cx)**2,0)); }
+    let t0=Math.atan2(za-r,a-ar.cx), t1=Math.atan2(zbb-r,b-ar.cx);
+    if(t0<t1) t0+=2*Math.PI;
+    segs.push({type:'arc',cx:ar.cx,cz:r,ra,t0,t1,p0:[a,za],p1:[b,zbb]});
+    archTop=Math.max(archTop,r+ra);
+    cur=[b,zbb]; prevEnd=b;
+  }
+  if(ex-cur[0]>1e-6){ segs.push({type:'line',p0:cur,p1:[ex,zb]}); cur=[ex,zb]; }
+  const end=cur, n=s.nose;
+  const top=[end,[x1,Math.max(zb+D*0.45,end[1]+20)],[x1-0.015*L,hb-D*0.05],[x1-0.12*L,hb],[x0+0.40*L,hb],
+             [x0+0.18*L,zb+D*(n+(1-n)*0.75)],[x0,Math.max(zb+D*n,start[1]+20)],start];
+  return {r,ra,x0,x1,L,zb,hb,D,axles,segs,top,start,overlap,archTop};
+}
+const cageHalf = s => Math.max(s.bodyW/2-30, 250);
+function figureOf(s,g,row=0){
+  const cab=s.cabin, cxC=g.x0+s.cabinPos*g.L, cl=s.cabinLen*g.L;
+  const sH = s.seatH + (cab==='cage' ? row*(s.rearRise||0) : 0);
+  const headX = (cab==='closed' ? cxC+0.12*cl : cxC) + (cab==='cage' ? row*s.rowGap : 0);
+  const headR = cab==='closed' ? 105 : cab==='cage' ? 110 : 135;
+  const headTop = sH+s.sitH, head=[headX,headTop-headR];
+  const off = {open:-380,closed:-220,rider:230,cage:-260}[cab];
+  const hip=[headX+off,sH+90];
+  const sh=[hip[0]+(head[0]-hip[0])*0.78, hip[1]+(head[1]-hip[1])*0.78];
+  let knee,foot;
+  if(cab==='rider'){ knee=[hip[0]-380,sH-20]; foot=[hip[0]-280,Math.max(g.zb+80,sH-470)]; }
+  else if(cab==='cage'){ knee=[hip[0]-420,sH+180]; foot=[hip[0]-760,Math.max(g.zb+60,sH-300)]; }
+  else { knee=[hip[0]-430,sH+(cab==='closed'?200:250)]; foot=[hip[0]-880,Math.max(g.zb+60,sH-180)]; }
+  const y = (cab==='closed' && s.bodyW>1300) ? -0.2*s.bodyW : 0;
+  const ys = cab==='cage' ? [-cageHalf(s)*0.48, cageHalf(s)*0.48] : [y];
+  return {cxC,cl,xc0:cxC-cl/2,xc1:cxC+cl/2,headX,headR,headTop,head,hip,sh,knee,foot,y,ys,sH,row};
+}
+function figuresOf(s,g){
+  const n = s.cabin==='cage' ? (s.rows===2?2:1) : 1;
+  return Array.from({length:n},(_,i)=>figureOf(s,g,i));
+}
+function seatCount(s){ return s.cabin==='cage' ? (s.rows===2?4:2) : s.cabin==='rider' ? 1 : null; }
+
+/* ---------- Checks ---------- */
+function hull(pts){
+  const P=[...pts].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[],up=[];
+  for(const p of P){ while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],p)<=0) lo.pop(); lo.push(p); }
+  for(const p of P.slice().reverse()){ while(up.length>=2&&cross(up[up.length-2],up[up.length-1],p)<=0) up.pop(); up.push(p); }
+  return lo.slice(0,-1).concat(up.slice(0,-1));
+}
+function segDist(p,a,b){
+  const vx=b[0]-a[0], vy=b[1]-a[1], L2=vx*vx+vy*vy;
+  let t=L2?((p[0]-a[0])*vx+(p[1]-a[1])*vy)/L2:0; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(p[0]-a[0]-t*vx, p[1]-a[1]-t*vy);
+}
+function runChecks(s,g,f,fs,d){
+  const out=[], add=(lv,title,body)=>out.push({lv,title,body});
+  const mm=v=>Math.round(v).toLocaleString('en-US')+' mm';
+  if(s.utv){
+    const D=s.wheelD, xs=g.axles.map(a=>a.x);
+    const rng=(v,lo,hi,title,ref,est)=>add(v>=lo&&v<=hi?'ok':'warn',`${title} ${v.toFixed(2)}`,`${est?'Estimated plausible range':'Production four-seat UTVs'}: about ${lo}–${hi}${ref?'; '+ref:''}.${v<lo?' Too small.':v>hi?' Too large.':''}`);
+    if(!OV.pts) add('info','Image not aligned yet','Load a side view in “Overlay”, align the wheel centers and adjust the wheel diameter; only then do the values below describe your design.');
+    if(s.wheelCount===4) rng(s.wheelbase/D,3.8,4.5,'Wheelbase ÷ wheel diameter','i.e. how many wheel diameters long the wheelbase is');
+    else {
+      const seg=xs.slice(1).map((x,i)=>x-xs[i]);
+      rng(Math.max(...seg)/D,3.8,4.5,'Main wheelbase ÷ wheel diameter','derived from four-wheel models; distance from the single axle to the tandem group',true);
+      rng(Math.min(...seg)/D,1.05,1.4,'Tandem gap ÷ wheel diameter','the two tires need clearance between them',true);
+      if(Math.min(...seg) < D+20) add('fail','Tires interfere','The two rear wheels are closer than one wheel diameter; the tires would collide.');
+      add('info','Six-wheel version keeps the four-wheel conditions','Four seats, overall width no more than 64 in (the reference model is 1,626 mm wide, same as the four-wheel version; adding an axle makes the vehicle longer, not wider), and a roll cage protecting a 185 cm occupant. No comparable four-seat sport six-wheel model is in production, so the front section uses the four-wheel wheelbase ratio, and the rear tandem gap must exceed one wheel diameter for tire clearance; 1.05–1.4 is an estimated range.');
+    }
+    const A=approachAngles();
+    if(A){
+      for(const [k,lab,txt] of [['front','Approach angle','the line tangent to the front tire through the lowest front point'],['rear','Departure angle','the line tangent to the last tire through the lowest rear point']])
+        if(A[k]!=null) add('info',A[k]>=90?`${lab} ≥ 90°`:`${lab} ${A[k].toFixed(0)}°`,A[k]>=90?'The clicked point lies above the tire tangent, so the body would not touch an obstacle before the tire; if this is not the point you meant, measure again.':`Measured from the image: angle between the ground and ${txt}; larger angles are less likely to get stuck. Manufacturers do not publish UTV approach/departure angles, so this value is for comparing designs and has no pass threshold.`);
+        else if(A[k+'Err']) add('warn',lab+' cannot be calculated',A[k+'Err']);
+    }
+    add('info','Occupants and roll cage','The model occupants are 185 cm tall. After alignment you can see directly whether the roll cage in the image covers their heads.');
+    const order={fail:0,warn:1,info:2,ok:3};
+    return out.sort((a,b)=>order[a.lv]-order[b.lv]);
+  }
+  // Tire interference
+  const xs=g.axles.map(a=>a.x);
+  let interf=false;
+  for(let i=1;i<xs.length;i++){ const gap=xs[i]-xs[i-1]; if(gap < s.wheelD+20){ interf=true; add('fail','Tires interfere',`Adjacent axles are ${mm(gap)} apart, less than the wheel diameter ${mm(s.wheelD)} plus 20 mm clearance.`); } }
+  if(!interf) add('ok','No tire interference',`Smallest axle spacing ${mm(Math.min(...xs.slice(1).map((x,i)=>x-xs[i])))}.`);
+  if(g.overlap) add('warn','Wheel arches overlap','Two wheel arches overlap at the body underside; the second arch was not cut.');
+  // Wheel arch height
+  if(g.archTop>0){
+    if(g.archTop > g.hb-30) add('fail','Wheel arch above beltline',`Arch top ${mm(g.archTop)}, beltline ${mm(g.hb)}. The body would be cut above the wheel; raise the beltline or reduce the wheel diameter.`);
+    else add('ok','Wheel arch below beltline',`Arch top ${mm(g.archTop)}, ${mm(g.hb-g.archTop)} below the beltline.`);
+  }
+  // Headroom
+  if(s.cabin==='rider') add('info','Rider type: no roof',`Top of head ${mm(f.headTop)} above ground.`);
+  else for(const fi of fs){
+    const clr=s.roof-fi.headTop, who = fs.length>1 ? (fi.row===0?'Front row: ':'Rear row: ') : '';
+    const what = s.cabin==='open'||s.cabin==='cage'?'roll cage':'roof';
+    if(clr<0) add('fail',who+'head protrudes through the '+what,`Top of head ${mm(fi.headTop)}, ${what} ${mm(s.roof)}, short by ${mm(-clr)}.`);
+    else if(clr<50) add('warn',who+'insufficient headroom',`Only ${mm(clr)} from head to ${what}; at least 50 mm is recommended.`);
+    else add('ok',who+'enough headroom',`${mm(clr)} from head to ${what}.`);
+  }
+  if(s.cabin==='closed'){
+    if(s.roof <= g.hb+80) add('fail','Roof below beltline',`Roof ${mm(s.roof)} is barely above the beltline ${mm(g.hb)}; the cabin is not feasible.`);
+    if(f.headX < f.xc0+0.15*f.cl || f.headX > f.xc1-0.05*f.cl) add('warn','Occupant head outside the cabin','Adjust the cabin position or length.');
+  }
+  if(s.seatH < g.zb+30) add('warn','Seat below the floor',`Seat ${mm(s.seatH)}, ground clearance ${mm(g.zb)}.`);
+  // Stability
+  const pts=[]; g.axles.forEach(a=>a.ys.forEach(y=>pts.push([a.x,y])));
+  if(s.wheelCount===2){ add('info','Two wheels: rider must balance','No lateral support base when static, so no stability factor is calculated.'); }
+  else {
+    const H=hull(pts);
+    const mid=(xs[0]+xs[xs.length-1])/2, xcg=0.7*mid+0.3*f.hip[0];
+    const hcg=0.7*(g.zb+g.D*0.4)+0.3*(s.seatH+250);
+    let d=Infinity; for(let i=0;i<H.length;i++) d=Math.min(d,segDist([xcg,0],H[i],H[(i+1)%H.length]));
+    const ssf=d/hcg, lv=ssf>=1.1?'ok':ssf>=0.8?'warn':'fail';
+    add(lv,`Static stability factor about ${ssf.toFixed(2)}`,`Center of gravity to tipping axis ${mm(d)}, CG height about ${mm(hcg)}. Below 1.1 the vehicle tips more easily in sharp turns${s.wheelCount===3?'; a three-wheeler’s tipping axis is diagonal, so the factor is usually lower than for four wheels':''}.`);
+  }
+  // UTV task conditions and proportions
+  if(s.utv){
+    const n=seatCount(s);
+    if(n===4) add('ok','Seats: 4','Meets the task condition.');
+    else add('fail','Wrong seat count',`Currently ${n??'?'} seats; the task requires 4 (cabin type roll cage, 2 rows).`);
+    const W=d.W, inch=W/25.4;
+    if(W<=1626) add('ok',`Width ${inch.toFixed(1)} in ≤ 64 in`,`Currently ${mm(W)} (limit 1,626 mm).`);
+    else add('fail',`Width ${inch.toFixed(1)} in exceeds 64 in`,`Currently ${mm(W)}, limit 1,626 mm. Overall width is the larger of body width and track + tire width.`);
+    if(s.sitH<955) add('warn','Occupant smaller than 185 cm','Sitting height is below about 965 mm (185 cm tall), so the headroom check is lenient.');
+    if(s.cabin!=='cage') add('warn','No roll cage','The task requires a roll cage protecting the occupants; set cabin type to “Roll cage”.');
+    const D=s.wheelD, rng=(v,lo,hi,title,ref,est)=>add(v>=lo&&v<=hi?'ok':'warn',`${title} ${v.toFixed(2)}`,`${est?'Estimated plausible range':'Production four-seat UTVs'}: about ${lo}–${hi}${ref?'; '+ref:''}.${v<lo?' Too small.':v>hi?' Too large.':''}`);
+    if(s.wheelCount===4) rng(s.wheelbase/D,3.9,4.5,'Wheelbase ÷ wheel diameter','i.e. how many wheel diameters long the wheelbase is');
+    if(s.wheelCount===6){
+      const seg=xs.slice(1).map((x,i)=>x-xs[i]), main=Math.max(...seg), tandem=Math.min(...seg);
+      rng(main/D,3.6,4.6,'Main wheelbase ÷ wheel diameter','derived from four-wheel models; distance from the single axle to the tandem group',true);
+      rng(tandem/D,1.05,1.4,'Tandem gap ÷ wheel diameter','the two tires need clearance between them',true);
+      add('info',`Total wheelbase ÷ wheel diameter ${(s.wheelbase/D).toFixed(2)}`,'There is no production four-seat sport six-wheel reference; rely on the two items above.');
+    }
+    if(s.wheelCount===4) rng(d.Lo/d.H,1.85,2.1,'Length ÷ height');
+    rng(d.H/D,2.4,2.9,'Height ÷ wheel diameter');
+    rng((s.ohF+s.ohR)/D,0.9,1.2,'Total overhang ÷ wheel diameter');
+  }
+  // FSAE
+  if(s.fsae){
+    if(s.wheelCount!==4) add('fail','FSAE: must have four wheels','FSAE rules require four wheels not in a straight line.');
+    if(s.wheelbase>=1525) add('ok','FSAE: wheelbase ≥ 1525 mm',`Currently ${mm(s.wheelbase)}.`);
+    else add('fail','FSAE: wheelbase too short',`Rule minimum 1525 mm, currently ${mm(s.wheelbase)}.`);
+    if(s.wheelCount===4){
+      const ratio=Math.min(s.trackF,s.trackR)/Math.max(s.trackF,s.trackR);
+      add(ratio>=0.75?'ok':'fail',`FSAE: smaller track is ${(ratio*100).toFixed(0)}% of the larger`,'The rule requires at least 75%.');
+    }
+    if(s.cabin==='closed') add('warn','FSAE: must be an open cockpit','FSAE cars have an open cockpit with main and front roll hoops.');
+  }
+  const order={fail:0,warn:1,info:2,ok:3};
+  return out.sort((a,b)=>order[a.lv]-order[b.lv]);
+}
+function dimsOf(s,g,f,fs){
+  const xs=g.axles.map(a=>a.x);
+  const front=Math.min(g.x0,Math.min(...xs)-g.r), rear=Math.max(g.x1,Math.max(...xs)+g.r);
+  const tracks=g.axles.flatMap(a=>a.ys.map(y=>Math.abs(y)*2));
+  const W=Math.max(s.bodyW,Math.max(...tracks)+s.tireW);
+  const H=Math.max(g.hb,...(fs||[f]).map(o=>o.headTop),s.cabin!=='rider'?s.roof:0);
+  const Lo=rear-front;
+  return {Lo,W,H,
+    list:[
+      ['Length',Lo,'mm'],['Width',W,'mm'],['Height',H,'mm'],['Wheelbase',s.wheelbase,'mm'],
+      ['Wheelbase / length',s.wheelbase/Lo,'%'],['Wheel dia. / height',s.wheelD/H,'x'],['Height / length',H/Lo,'x'],
+      ['Front : rear overhang',s.ohF/Math.max(s.ohR,1),'x'],['Head top above ground',f.headTop,'mm'],['Body length',g.L,'mm'],
+      ['Width (in)',W/25.4,'x'],['Wheelbase ÷ wheel dia.',s.wheelbase/s.wheelD,'x'],['Length ÷ height',Lo/H,'x'],
+      ['Height ÷ wheel dia.',H/s.wheelD,'x'],['Overhang ÷ wheel dia.',(s.ohF+s.ohR)/s.wheelD,'x'],['Seats',seatCount(s)??0,'n'],
+    ]};
+}
+
+/* ---------- UI ---------- */
+const $=s=>document.querySelector(s);
+const rows={};
+let lastLogged={...S};
+const LOG=[];
+
+function buildControls(){
+  const host=$('#controls'); let grp=null;
+  for(const c of CTRL){
+    if(c.g){ grp=document.createElement('div'); grp.className='group'; grp.innerHTML=`<h2>${c.g}</h2>`; host.appendChild(grp); continue; }
+    const row=document.createElement('div'); row.className='row';
+    const id='p_'+c.k;
+    if(c.t==='seg'){
+      row.innerHTML=`<label>${c.label}</label><span></span><div class="seg" role="group" aria-label="${c.label}">${c.opts.map(o=>`<button type="button" data-v="${o[0]}">${o[1]}</button>`).join('')}</div>`;
+      row.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+        const v=typeof c.opts[0][0]==='number'?Number(b.dataset.v):b.dataset.v;
+        setParam(c.k,v,true);
+      }));
+    } else if(c.t==='toggle'){
+      row.innerHTML=`<label class="toggle" style="grid-column:1/-1"><input type="checkbox" id="${id}"> ${c.label}</label>`;
+      row.querySelector('input').addEventListener('change',e=>setParam(c.k,e.target.checked,true));
+    } else {
+      const sc=c.scale||1;
+      row.innerHTML=`<label for="${id}" class="lbl"></label><span class="num"><input type="number" id="${id}n" min="${c.min}" max="${c.max}" step="${c.step}" aria-label="${typeof c.label==='string'?c.label:''} value"><em>${c.unit??'mm'}</em></span>
+        <input type="range" id="${id}" min="${c.min}" max="${c.max}" step="${c.step}">${c.hint?`<div class="hint">${c.hint}</div>`:''}`;
+      const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+      rg.addEventListener('input',()=>setParam(c.k,Number(rg.value)/sc,false));
+      rg.addEventListener('change',()=>logChange(c.k));
+      nb.addEventListener('change',()=>{ let v=Number(nb.value); if(!isFinite(v)) v=S[c.k]*sc; v=Math.max(c.min,Math.min(c.max,v)); setParam(c.k,v/sc,true); });
+    }
+    rows[c.k]={row,c}; grp.appendChild(row);
+  }
+}
+function syncControls(){
+  for(const k in rows){
+    const {row,c}=rows[k];
+    row.hidden = c.show ? !c.show(S) : false;
+    if(c.t==='seg') row.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===String(S[k]))));
+    else if(c.t==='toggle') row.querySelector('input').checked=!!S[k];
+    else {
+      const sc=c.scale||1, v=+(S[k]*sc).toFixed(4);
+      row.querySelector('.lbl').textContent = typeof c.label==='function'?c.label(S):c.label;
+      const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+      if(document.activeElement!==rg) rg.value=v;
+      if(document.activeElement!==nb) nb.value=v;
+    }
+  }
+  document.querySelectorAll('#presets .chip').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.p===activePreset)));
+}
+function setParam(k,v,commit){
+  S[k]=v; activePreset=null; scheduleBuild(); syncControls();
+  if(commit) logChange(k);
+}
+function logChange(k){
+  if(lastLogged[k]===S[k]) return;
+  addLog(k,lastLogged[k],S[k]); lastLogged[k]=S[k];
+}
+function addLog(param,from,to){
+  const t=new Date(); const pad=n=>String(n).padStart(2,'0');
+  LOG.push({time:`${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`,
+    pid:$('#pid').value.trim(),phase:$('#phase').value.trim(),param,from:fmtLog(from),to:fmtLog(to)});
+  renderLog();
+}
+const fmtLog=v=>typeof v==='number'?String(+v.toFixed(3)):String(v);
+function renderLog(){
+  $('#logcount').textContent=LOG.length;
+  $('#logbody').innerHTML=LOG.slice(-40).reverse().map(r=>`<tr><td>${r.time.slice(11)}</td><td>${esc(r.pid)}</td><td>${esc(r.phase)}</td><td>${esc(r.param)}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td></tr>`).join('');
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function applyPreset(key){
+  const p=PRESETS[key];
+  addLog('preset',activePreset?PRESETS[activePreset].name:'custom',p.name);
+  S={...p.s}; activePreset=key; lastLogged={...S};
+  syncControls(); scheduleBuild(true);
+}
+
+function renderPanels(){
+  const g=solve(S), fs=figuresOf(S,g), f=fs[0];
+  const d=dimsOf(S,g,f,fs);
+  const checks=runChecks(S,g,f,fs,d);
+  $('#checks').innerHTML=checks.map(c=>`<li><span class="pill ${c.lv}">${{ok:'Pass',warn:'Check',fail:'Fail',info:'Note'}[c.lv]}</span><div><b>${c.title}</b><p>${c.body}</p></div></li>`).join('');
+  const nf=checks.filter(c=>c.lv==='fail').length, nw=checks.filter(c=>c.lv==='warn').length;
+  const cc=$('#chkcount'); cc.textContent=nf||nw||'✓'; cc.className='count'+(nf?' bad':nw?' meh':'');
+  $('#dims').innerHTML=d.list.map(([k,v,u])=>`<div><dt>${k}</dt><dd>${u==='mm'?Math.round(v).toLocaleString('en-US')+' <small>mm</small>':u==='%'?(v*100).toFixed(1)+' <small>%</small>':u==='n'?String(v||'—'):v.toFixed(2)}</dd></div>`).join('');
+  $('#readout').innerHTML=`<span>L</span><b>${Math.round(d.Lo)}</b><span>W</span><b>${Math.round(d.W)}</b><span>H</span><b>${Math.round(d.H)}</b><span>WB</span><b>${Math.round(S.wheelbase)}</b>`;
+  return {g,f,fs};
+}
+
+/* ---------- 3D ---------- */
+let renderer,scene,camera,controls,veh,bands,grid,ground,sun,view='side',needsFrame=true,pending=false,mats;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function V(x,z,y){ return new THREE.Vector3(x,z,y||0); }
+
+function initThree(){
+  const stage=$('#stage');
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  stage.insertBefore(renderer.domElement,stage.firstChild);
+  scene=new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8a8f96,0.75));
+  sun=new THREE.DirectionalLight(0xffffff,0.85); sun.position.set(-4,8,5); sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-6,right:6,top:6,bottom:-6,near:0.5,far:30}); sun.shadow.radius=4;
+  scene.add(sun); scene.add(sun.target);
+  ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.ShadowMaterial({opacity:0.18}));
+  ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+  veh=new THREE.Group(); veh.scale.setScalar(0.001); scene.add(veh);
+  bands=new THREE.Group(); bands.scale.setScalar(0.001); scene.add(bands);
+  mats={
+    clay:new THREE.MeshStandardMaterial({roughness:0.8,metalness:0}),
+    glass:new THREE.MeshStandardMaterial({color:0x7fa6bf,roughness:0.1,metalness:0.2,transparent:true,opacity:0.38,depthWrite:false}),
+    tire:new THREE.MeshStandardMaterial({color:0x1f2226,roughness:0.92}),
+    rim:new THREE.MeshStandardMaterial({color:0xa3aab1,roughness:0.35,metalness:0.6}),
+    hoop:new THREE.MeshStandardMaterial({color:0x4a4f55,roughness:0.4,metalness:0.7}),
+    seat:new THREE.MeshStandardMaterial({color:0x33373c,roughness:0.85}),
+    fig:new THREE.MeshStandardMaterial({roughness:0.55,transparent:true,opacity:0.9}),
+    cockpit:new THREE.MeshBasicMaterial({color:0x121417}),
+    dim:new THREE.LineBasicMaterial(),
+  };
+  applyTheme();
+  new ResizeObserver(resize).observe(stage);
+  resize();
+  $('#loadmsg').remove();
+  (function loop(){ requestAnimationFrame(loop); if(!camera) return; controls&&controls.update(); renderer.render(scene,camera); })();
+}
+function applyTheme(){
+  if(!scene) return;
+  scene.background=new THREE.Color(css('--stage'));
+  mats.clay.color.set(css('--clay')); mats.fig.color.set(css('--figure')); mats.dim.color.set(css('--accent'));
+  if(grid){ scene.remove(grid); grid.geometry.dispose(); }
+  grid=new THREE.GridHelper(20,20,new THREE.Color(css('--grid-major')),new THREE.Color(css('--grid')));
+  grid.position.y=0.001; grid.visible = view==='3q'||view==='top'; scene.add(grid);
+}
+function disposeGroup(g){ while(g.children.length){ const c=g.children.pop(); c.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); } }
+function mesh(geo,mat,shadow=true){ const m=new THREE.Mesh(geo,mat); m.castShadow=shadow; m.receiveShadow=shadow; return m; }
+function limb(a,b,r){
+  const A=V(a[0],a[1],a[2]), B=V(b[0],b[1],b[2]), len=A.distanceTo(B);
+  const m=mesh(new THREE.CylinderGeometry(r,r,len,18),mats.fig);
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());
+  veh.add(m);
+  for(const P of [A,B]){ const j=mesh(new THREE.SphereGeometry(r,16,12),mats.fig); j.position.copy(P); veh.add(j); }
+}
+function tube(a,b,r=22){
+  const A=V(a[0],a[1],a[2]), B=V(b[0],b[1],b[2]), len=A.distanceTo(B);
+  const m=mesh(new THREE.CylinderGeometry(r,r,len,14),mats.hoop);
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),B.clone().sub(A).normalize());
+  veh.add(m);
+  for(const P of [A,B]){ const j=mesh(new THREE.SphereGeometry(r,12,10),mats.hoop); j.position.copy(P); veh.add(j); }
+}
+/* Proportion range zones: derived from four 64-inch-class four-seat UTVs (side view only) */
+const RANGE={wb:[3.8,4.5],h:[2.5,2.8],oh:[0.5,0.65],tandem:[1.05,1.4]};
+function buildBands(g){
+  disposeGroup(bands);
+  const on=$('#bandon')?$('#bandon').checked:true;
+  bands.visible = on && view==='side' && S.utv;
+  if(!bands.visible) return;
+  const D=S.wheelD, xs=g.axles.map(a=>a.x), z=4000;
+  const fill=new THREE.MeshBasicMaterial({color:0x1f9d55,transparent:true,opacity:0.32,depthTest:false,depthWrite:false,side:THREE.DoubleSide});
+  const edge=new THREE.LineBasicMaterial({color:0x1f9d55,transparent:true,opacity:0.9,depthTest:false});
+  const rect=(x0,x1,y0,y1)=>{
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(x1-x0,1),Math.max(y1-y0,1)),fill);
+    m.position.set((x0+x1)/2,(y0+y1)/2,z); m.renderOrder=10; bands.add(m);
+    const pts=[[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]].map(p=>new THREE.Vector3(p[0],p[1],z+1));
+    const l=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),edge); l.renderOrder=11; bands.add(l);
+  };
+  // Where the rear wheel center (4 wheels) / first rear axle (6 wheels) should fall
+  rect(RANGE.wb[0]*D, RANGE.wb[1]*D, 0, D);
+  if(S.wheelCount===6){ const mid=xs[1]; rect(mid+RANGE.tandem[0]*D, mid+RANGE.tandem[1]*D, 0, D*0.6); }
+  const last=xs[xs.length-1];
+  // Roof height
+  rect(-RANGE.oh[1]*D, last+RANGE.oh[1]*D, RANGE.h[0]*D, RANGE.h[1]*D);
+  // Front and rear ends
+  rect(-RANGE.oh[1]*D, -RANGE.oh[0]*D, 0, D*1.4);
+  rect(last+RANGE.oh[0]*D, last+RANGE.oh[1]*D, 0, D*1.4);
+}
+function build(){
+  const {g,f,fs}=renderPanels();
+  if(!scene) return;
+  disposeGroup(veh);
+  // Body
+  const sh=new THREE.Shape(); sh.moveTo(g.start[0],g.start[1]);
+  for(const s of g.segs){ if(s.type==='line') sh.lineTo(s.p1[0],s.p1[1]); else sh.absarc(s.cx,s.cz,s.ra,s.t0,s.t1,true); }
+  sh.splineThru(g.top.slice(1).map(p=>new THREE.Vector2(p[0],p[1])));
+  const bt=Math.min(30,S.bodyW*0.08), bs=Math.min(25,bt);
+  const depth=Math.max(S.bodyW-2*bt,1);
+  const bg=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:true,bevelThickness:bt,bevelSize:bs,bevelOffset:-bs,bevelSegments:4,curveSegments:28,steps:1});
+  bg.translate(0,0,-depth/2); bg.computeVertexNormals();
+  veh.add(mesh(bg,mats.clay));
+  // Cabin
+  if(S.cabin==='closed' && S.roof>g.hb+80){
+    const cl=f.cl, x0=f.xc0, x1=f.xc1, zc=g.hb-20, roof=S.roof;
+    const cs=new THREE.Shape(); cs.moveTo(x0,zc);
+    cs.splineThru([new THREE.Vector2(x0+0.38*cl,roof-15),new THREE.Vector2(x0+0.62*cl,roof),new THREE.Vector2(x1-0.18*cl,roof-40),new THREE.Vector2(x1,zc)]);
+    cs.lineTo(x0,zc);
+    const cw=Math.min(S.bodyW*0.8,S.bodyW-80), cb=Math.min(20,cw*0.05), cd=Math.max(cw-2*cb,1);
+    const cg=new THREE.ExtrudeGeometry(cs,{depth:cd,bevelEnabled:true,bevelThickness:cb,bevelSize:cb,bevelOffset:-cb,bevelSegments:3,curveSegments:24});
+    cg.translate(0,0,-cd/2);
+    const gm=mesh(cg,mats.glass,false); gm.renderOrder=2; veh.add(gm);
+  } else if(S.cabin==='open'){
+    const xh=f.headX+180; let hr=Math.min(S.bodyW*0.75,620)/2;
+    if(S.roof-hr<g.hb) hr=Math.max(80,S.roof-g.hb);
+    const legTop=S.roof-hr, tube=16;
+    const tor=mesh(new THREE.TorusGeometry(hr,tube,12,40,Math.PI),mats.hoop);
+    tor.rotation.y=Math.PI/2; tor.position.set(xh,legTop,0); veh.add(tor);
+    for(const z of [-hr,hr]){
+      const len=Math.max(legTop-(g.hb-30),1);
+      const leg=mesh(new THREE.CylinderGeometry(tube,tube,len,12),mats.hoop); leg.position.set(xh,(legTop+g.hb-30)/2,z); veh.add(leg);
+    }
+    const op=new THREE.Mesh(new THREE.CircleGeometry(1,48),mats.cockpit);
+    op.scale.set(Math.min(780,g.L*0.3)/2,Math.min(S.bodyW*0.7,560)/2,1);
+    op.rotation.x=-Math.PI/2; op.position.set((f.headX+f.hip[0])/2-120,g.hb+4,0); veh.add(op);
+  } else if(S.cabin==='cage'){
+    const hw=cageHalf(S), roof=Math.max(S.roof,g.hb+200), base=g.hb-20, fr=fs[0], ls=fs[fs.length-1];
+    const xA0=Math.max(fr.headX-950,g.x0+0.06*g.L), xA1=fr.headX-420, xR1=ls.headX+260, xR0=Math.min(ls.headX+380,g.x1-0.04*g.L);
+    const xB = fs.length>1 ? fr.headX+230 : null;
+    for(const z of [-hw,hw]){
+      tube([xA0,base,z],[xA1,roof,z]); tube([xA1,roof,z],[xR1,roof,z]); tube([xR1,roof,z],[xR0,base,z]);
+      if(xB!==null) tube([xB,base,z],[xB,roof,z]);
+    }
+    for(const x of [xA1,xR1].concat(xB!==null?[xB]:[])) tube([x,roof,-hw],[x,roof,hw]);
+    tube([xR0,base+40,-hw],[xR1,roof,hw]);
+    const op=new THREE.Mesh(new THREE.PlaneGeometry(1,1),mats.cockpit);
+    op.scale.set(Math.max(xR0-xA0-300,200),hw*1.8,1);
+    op.rotation.x=-Math.PI/2; op.position.set((xA0+300+xR0)/2,g.hb+4,0); veh.add(op);
+    for(const fi of fs) for(const z of fi.ys){
+      const sb=mesh(new THREE.BoxGeometry(460,90,440),mats.seat); sb.position.set(fi.hip[0]-60,fi.sH+45,z); veh.add(sb);
+      const bk=mesh(new THREE.BoxGeometry(90,620,440),mats.seat); bk.position.set(fi.hip[0]+150,fi.sH+330,z); bk.rotation.z=0.18; veh.add(bk);
+    }
+  }
+  // Wheels
+  const r=g.r, tw=S.tireW;
+  const tireG=new THREE.CylinderGeometry(r,r,tw,56); tireG.rotateX(Math.PI/2);
+  const rimG=new THREE.CylinderGeometry(r*0.64,r*0.64,tw+6,40); rimG.rotateX(Math.PI/2);
+  for(const a of g.axles) for(const y of a.ys){
+    const t=mesh(tireG.clone(),mats.tire); t.position.set(a.x,r,y); veh.add(t);
+    const m=mesh(rimG.clone(),mats.rim); m.position.set(a.x,r,y); veh.add(m);
+  }
+  tireG.dispose(); rimG.dispose();
+  // Occupants
+  for(const fi of fs) for(const y of fi.ys){
+    const head=mesh(new THREE.SphereGeometry(fi.headR,28,20),mats.fig); head.position.set(fi.head[0],fi.head[1],y); veh.add(head);
+    const tw2 = S.cabin==='cage'?110:140;
+    limb([...fi.hip,y],[...fi.sh,y],tw2); limb([...fi.hip,y],[...fi.knee,y],60); limb([...fi.knee,y],[...fi.foot,y],50);
+  }
+  // Wheelbase dimension
+  const halfW=Math.max(S.bodyW/2,...g.axles.flatMap(a=>a.ys.map(v=>Math.abs(v)+tw/2)))+220;
+  const xs=g.axles.map(a=>a.x), pts=[];
+  pts.push(V(xs[0],3,halfW),V(xs[xs.length-1],3,halfW));
+  for(const x of xs) pts.push(V(x,3,halfW-90),V(x,3,halfW+90));
+  pts.push(V(g.x0,3,halfW+160),V(g.x1,3,halfW+160),V(g.x0,3,halfW+100),V(g.x0,3,halfW+220),V(g.x1,3,halfW+100),V(g.x1,3,halfW+220));
+  veh.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),mats.dim));
+  if(needsFrame){ needsFrame=false; setView(view); }
+  buildBands(g);
+  ovRealign();
+}
+function scheduleBuild(reframe){ if(reframe) needsFrame=true; if(pending) return; pending=true; requestAnimationFrame(()=>{ pending=false; build(); }); }
+
+function box(){ const b=new THREE.Box3().setFromObject(veh); if(b.isEmpty()) b.set(V(-1,0,-1),V(1,1.5,1)); return b; }
+function setView(v){
+  view=v;
+  document.querySelectorAll('#views button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===v)));
+  const el=renderer.domElement, W=el.clientWidth||800, H=el.clientHeight||500, asp=W/H;
+  const b=box(), c=b.getCenter(new THREE.Vector3()), sz=b.getSize(new THREE.Vector3());
+  if(controls) controls.dispose();
+  if(v==='3q'){
+    camera=new THREE.PerspectiveCamera(32,asp,0.05,200);
+    const dist=Math.max(sz.x,sz.y*1.6,sz.z)*2.3;
+    camera.position.copy(c).add(new THREE.Vector3(-1,0.5,1.15).normalize().multiplyScalar(dist));
+  } else {
+    let spanW,spanH;
+    if(v==='side'){ spanW=sz.x; spanH=sz.y; } else if(v==='front'){ spanW=sz.z; spanH=sz.y; } else { spanW=sz.x; spanH=sz.z; }
+    let hh=Math.max(spanH*0.7, spanW*0.62/asp); const hw=hh*asp;
+    camera=new THREE.OrthographicCamera(-hw,hw,hh,-hh,0.01,200);
+    camera.userData.hh=hh;
+    if(v==='side') camera.position.set(c.x,c.y,c.z+30);
+    else if(v==='front') camera.position.set(c.x-30,c.y,c.z);
+    else { camera.up.set(0,0,-1); camera.position.set(c.x,c.y+30,c.z); }
+  }
+  camera.lookAt(c);
+  if(grid) grid.visible = v==='3q'||v==='top';
+  if(bands) scheduleBuild();
+  const lg=document.getElementById('bandlegend'); if(lg){ lg.hidden=!(S.utv && $('#bandon').checked); lg.innerHTML = v==='side' ? '<i></i>Green zones: proportion ranges of four production 64-inch-class four-seat UTVs. The rear wheel center, roof, front end and rear end should fall inside their zones.' : 'Proportion ranges (green zones) are shown only in Side view; please switch to Side.'; }
+  controls=new THREE.OrbitControls(camera,el);
+  controls.target.copy(c); controls.enableDamping=true; controls.dampingFactor=0.12;
+  controls.enableRotate = v==='3q';
+  controls.maxPolarAngle=Math.PI*0.495;
+  if(!$('#ov').hidden && v!=='3q'){ controls.enableZoom=false; controls.enablePan=false; }
+  controls.update();
+}
+function resize(){
+  if(!renderer) return;
+  const el=$('#stage'), W=el.clientWidth, H=el.clientHeight;
+  renderer.setSize(W,H,false);
+  if(!camera) return;
+  if(camera.isPerspectiveCamera){ camera.aspect=W/H; }
+  else { const hh=camera.userData.hh, hw=hh*W/H; Object.assign(camera,{left:-hw,right:hw,top:hh,bottom:-hh}); }
+  camera.updateProjectionMatrix();
+  if(OV.pts) ovRealign(); else if(!$('#ov').hidden){ ovFit(); ovUpdate(); }
+}
+
+/* ---------- Overlay, export, log ---------- */
+/* Overlay state: base maps (flipped) image pixels to stage pixels; fine-tune sliders are applied on top */
+const OV={nat:[1,1],s0:1,tx0:0,ty0:0,pts:null,pick:null,mode:'align',ang:null,cur:{s:1,tx:0,ty:0}};
+const stageWH=()=>{ const el=$('#stage'); return [el.clientWidth,el.clientHeight]; };
+const flipU=u=>$('#ovflip').checked ? OV.nat[0]-u : u;
+function ovFit(){
+  const [W,H]=stageWH(), [w,h]=OV.nat, s=Math.min(W/w,H/h);
+  Object.assign(OV,{s0:s,tx0:(W-w*s)/2,ty0:(H-h*s)/2});
+}
+function ovUpdate(){
+  const img=$('#ov'); if(img.hidden) return;
+  const [W,H]=stageWH(), k=+$('#ovsc').value, cx=W/2, cy=H/2;
+  const s=k*OV.s0, tx=cx+k*(OV.tx0-cx)+$('#ovx').value*W/100, ty=cy+k*(OV.ty0-cy)+$('#ovy').value*H/100;
+  OV.cur={s,tx,ty};
+  img.style.width=OV.nat[0]+'px'; img.style.height=OV.nat[1]+'px';
+  img.style.opacity=$('#ovop').value;
+  img.style.transform=`translate(${tx}px,${ty}px) scale(${s})`+($('#ovflip').checked?` translate(${OV.nat[0]}px,0) scaleX(-1)`:'');
+  drawDots();
+}
+function axleScreen(){
+  if(!camera||!veh) return null;
+  const g=solve(S), [W,H]=stageWH(), xs=g.axles.map(a=>a.x);
+  const pr=x=>{ const v=new THREE.Vector3(x*0.001,g.r*0.001,0).project(camera); return [(v.x+1)/2*W,(1-v.y)/2*H]; };
+  return [pr(xs[0]),pr(xs[xs.length-1])];
+}
+function ovRealign(){
+  if(!OV.pts||$('#ov').hidden||view!=='side') return;
+  const A=axleScreen(); if(!A) return;
+  let [p1,p2]=OV.pts, u1=flipU(p1[0]), u2=flipU(p2[0]);
+  if((A[1][0]-A[0][0])*(u2-u1)<0){ $('#ovflip').checked=!$('#ovflip').checked; u1=flipU(p1[0]); u2=flipU(p2[0]); }
+  const s=(A[1][0]-A[0][0])/(u2-u1);
+  if(!isFinite(s)||s<=0) return;
+  const vm=(p1[1]+p2[1])/2, ym=(A[0][1]+A[1][1])/2;
+  Object.assign(OV,{s0:s,tx0:A[0][0]-s*u1,ty0:ym-s*vm});
+  ovUpdate();
+}
+function drawDots(){
+  document.querySelectorAll('.ovdot').forEach(e=>e.remove());
+  const pts=OV.pick||[]; const {s,tx,ty}=OV.cur;
+  for(const p of pts){ const d=document.createElement('div'); d.className='ovdot'; d.style.left=(tx+s*flipU(p[0]))+'px'; d.style.top=(ty+s*p[1])+'px'; $('#stage').appendChild(d); }
+}
+function approachAngles(){
+  if(!OV.pts||!OV.ang) return null;
+  const [a,b]=OV.pts.map(p=>[flipU(p[0]),p[1]]);
+  const sx=Math.sign(b[0]-a[0])||1, k=Math.abs(b[0]-a[0])/S.wheelbase, r=S.wheelD/2*k, out={};
+  const calc=(C,P,dir)=>{ const u=dir*sx*(C[0]-P[0]), w=C[1]-P[1], R=Math.hypot(u,w);
+    if(u<=0) return [null,'The point is not outside the wheel; please click again.'];
+    if(R<=r) return [null,'The point falls on the tire; click the lowest point of the body, not the tire.'];
+    return [(Math.atan2(w,u)+Math.asin(r/R))*180/Math.PI,null]; };
+  for(const [key,C,dir] of [['front',a,1],['rear',b,-1]]){
+    const P=OV.ang[key]; if(!P) continue;
+    const [v,e]=calc(C,[flipU(P[0]),P[1]],dir); out[key]=v; if(e) out[key+'Err']=e;
+  }
+  return out;
+}
+function startAngle(){
+  if(!OV.pts){ $('#ovmsg').textContent='First complete “Align wheel centers” and match the wheel diameter to the image.'; return; }
+  if(view!=='side') setView('side');
+  OV.mode='angle'; OV.pick=[]; $('#ovpick').hidden=false; drawDots();
+  $('#ovmsg').textContent='Point 1: click the lowest front point in the image (front bumper or lowest frame part). (Esc to cancel)';
+}
+function startPick(){
+  if($('#ov').hidden){ $('#ovmsg').textContent='Please load an image first.'; return; }
+  if(view!=='side') setView('side');
+  OV.mode='align'; OV.ang=null; OV.pick=[]; $('#ovpick').hidden=false; drawDots();
+  $('#ovmsg').textContent='Point 1: click the front wheel center in the image. (Esc to cancel)';
+}
+function endPick(msg){ $('#ovpick').hidden=true; OV.pick=null; drawDots(); $('#ovmsg').textContent=msg; }
+async function copyText(txt,btn){
+  const label=btn.textContent;
+  try{ await navigator.clipboard.writeText(txt); btn.textContent='Copied'; }
+  catch(e){ const fb=$('#fallback'); fb.hidden=false; fb.value=txt; fb.focus(); fb.select(); btn.textContent='Please copy manually below'; showTab(btn.closest('.panel').dataset.p); }
+  setTimeout(()=>btn.textContent=label,1600);
+}
+function showTab(t){
+  document.querySelectorAll('#tablist button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.t===t)));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=p.dataset.p!==t);
+}
+function paramsJSON(){ const o={}; for(const k of Object.keys(PRESETS.utv4.s)) o[k]=S[k]; return JSON.stringify(o,null,1); }
+
+function wire(){
+  const pre=$('#presets');
+  for(const k in PRESETS){ const b=document.createElement('button'); b.className='chip'; b.dataset.p=k; b.textContent=PRESETS[k].name; b.onclick=()=>applyPreset(k); pre.appendChild(b); }
+  document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+  document.querySelectorAll('#tablist button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+  ['ovop','ovsc','ovx','ovy'].forEach(id=>$('#'+id).addEventListener('input',ovUpdate));
+  $('#ovflip').addEventListener('input',()=>{ if(OV.pts) ovRealign(); else ovUpdate(); });
+  $('#ovfile').addEventListener('change',e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const img=$('#ov'), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      OV.nat=[img.naturalWidth,img.naturalHeight]; OV.pts=null; OV.ang=null;
+      ['ovsc'].forEach(id=>$('#'+id).value=1); ['ovx','ovy'].forEach(id=>$('#'+id).value=0);
+      img.hidden=false; if(scene) setView('side'); ovFit(); ovUpdate(); addLog('overlay',"",file.name);
+      $('#ovmsg').textContent='Loaded. Next, click “Align wheel centers”.';
+    };
+    img.src=url;
+  });
+  $('#bandon').addEventListener('change',()=>{ setView(view); });
+  $('#ovalign').onclick=startPick; $('#ovangle').onclick=startAngle;
+  $('#ovpick').addEventListener('click',e=>{
+    const r=$('#stage').getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top, {s,tx,ty}=OV.cur;
+    const up=(x-tx)/s, v=(y-ty)/s, u=$('#ovflip').checked?OV.nat[0]-up:up;
+    OV.pick.push([u,v]); drawDots();
+    if(OV.mode==='angle'){
+      if(OV.pick.length===1){ $('#ovmsg').textContent='Point 2: click the lowest rear point in the image (rear bumper or lowest frame part).'; return; }
+      OV.ang={front:OV.pick[0],rear:OV.pick[1]}; addLog('angles','', 'measured'); scheduleBuild();
+      endPick('Angles measured; see “Results”. They update automatically if you change the wheel diameter.'); return;
+    }
+    if(OV.pick.length===1){ $('#ovmsg').textContent='Point 2: click the last wheel center in the image.'; return; }
+    OV.pts=OV.pick.slice(0,2); $('#ovsc').value=1; $('#ovx').value=0; $('#ovy').value=0;
+    ovRealign(); addLog('overlay align','', 'two-point'); scheduleBuild();
+    endPick('Aligned: the front and rear wheel centers in the image now match the model. Next, adjust the wheel diameter on the left until the model wheels match the image, then open “Results”.');
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&OV.pick) endPick('Alignment cancelled.'); });
+  $('#ovclear').onclick=()=>{ const img=$('#ov'); img.hidden=true; img.removeAttribute('src'); $('#ovfile').value=''; OV.pts=null; OV.ang=null; endPick(''); if(scene) setView(view); scheduleBuild(); };
+  $('#cpjson').onclick=e=>copyText(paramsJSON(),e.currentTarget);
+  $('#cpgh').onclick=e=>copyText(GH_SCRIPT,e.currentTarget);
+  $('#applyjson').onclick=()=>{
+    try{
+      const o=JSON.parse($('#jsonin').value); let n=0;
+      for(const k of Object.keys(PRESETS.utv4.s)) if(k in o){ S[k]=o[k]; n++; }
+      if(!n) throw new Error('no recognizable parameters');
+      addLog('apply JSON','',n+' items'); activePreset=null; lastLogged={...S};
+      syncControls(); scheduleBuild(true); $('#jsonmsg').textContent=`Applied ${n} parameters.`;
+    }catch(err){ $('#jsonmsg').textContent='Invalid JSON: '+err.message; }
+  };
+  $('#cplog').onclick=e=>{
+    const head='time,participant,phase,param,from,to';
+    const q=v=>`"${String(v).replace(/"/g,'""')}"`;
+    copyText([head,...LOG.map(r=>[r.time,r.pid,r.phase,r.param,r.from,r.to].map(q).join(','))].join('\n'),e.currentTarget);
+  };
+  $('#clrlog').onclick=()=>{ LOG.length=0; renderLog(); };
+  new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+}
+
+buildControls(); wire(); syncControls();
+if(window.THREE && THREE.OrbitControls){ initThree(); build(); }
+else { renderPanels(); $('#loadmsg').textContent='The 3D engine failed to load; please reload. Checks and dimensions still work.'; }
+</script>
+</body>
+</html>
