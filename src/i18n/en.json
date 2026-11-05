@@ -14,7 +14,7 @@
   "angleErrOutside": "The point is not outside the wheel; please click again.",
   "angleErrOnTire": "The point falls on the tire; click the lowest point of the body, not the tire.",
   "angleDone": "Angles measured: the red lines are tangent to the tires, the dashed blue line is the ground (under both wheels), and each angle is labeled next to its red point; values are also in “Results”. If a red line does not touch the tire, match the wheel diameter first; click “Measure angles” again to redo.",
-  "wdHead": "Measure overall width (front view, optional)",
+  "wdHead": "Measure overall width (front view)",
   "wdNote": "First finish the side-view alignment above and match the wheel diameter. Load the <b>front view</b>, click “Start width”, then click: ① the <b>top</b> of one front tire ② the <b>bottom</b> of the same tire ③ the vehicle’s <b>leftmost</b> point ④ its <b>rightmost</b> point (widest part, including tires and protrusions). Width is scaled from the wheel diameter on the left.",
   "wdStart": "Start width", "wdClear": "Clear",
   "wdP1": "Point 1: click the top of one front tire. (Esc to cancel)",
