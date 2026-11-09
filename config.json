@@ -1,6 +1,6 @@
 {
-  "version": "2.0.1",
-  "date": "2026-11-05",
+  "version": "3.0.0",
+  "date": "2026-11-10",
   "features": {
     "angleOverlay": true,
     "zoneLabels": true,
@@ -8,5 +8,6 @@
     "widthMeasure": true,
     "copyText": true,
     "wheelPrompt": true
-  }
+  },
+  "_note": "features 只影響 v2（docs/v2/）；v3 在 src/v3/index.html"
 }

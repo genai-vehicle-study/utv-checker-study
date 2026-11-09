@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UTV 比例檢查 v3</title>
+<style>
+:root{
+  --bg:#0e1014;--p1:#14171d;--p2:#1a1e26;--p3:#222733;--bd:#282d38;
+  --tx:#e8eaef;--mu:#8b93a4;--fa:#5d6474;
+  --ac:#5ab8ff;--acs:rgba(90,184,255,.14);
+  --ok:#45b98c;--wa:#f2a93b;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);
+  font:14px/1.6 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:372px 1fr;grid-template-rows:54px 1fr;height:100vh}
+
+/* header */
+header{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 18px;border-bottom:1px solid var(--bd);background:var(--p1)}
+.brand{font-weight:700;font-size:15px;letter-spacing:.02em}
+.tag{font-size:11px;color:var(--ac);border:1px solid rgba(90,184,255,.4);border-radius:99px;padding:1px 8px}
+header .sp{flex:1}
+.pid{display:flex;align-items:center;gap:8px;color:var(--mu);font-size:13px}
+.pid input{width:84px;background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:5px 9px;color:var(--tx)}
+
+/* buttons */
+.btn{background:var(--p3);border:1px solid var(--bd);border-radius:8px;padding:7px 13px;cursor:pointer;line-height:1.2;white-space:nowrap}
+.btn:hover{border-color:#3a4150;background:#272d3a}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.pri{background:var(--ac);border-color:var(--ac);color:#06121d;font-weight:600}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:13px}
+.seg{display:inline-flex;background:var(--p2);border:1px solid var(--bd);border-radius:8px;padding:2px}
+.seg button{background:none;border:0;border-radius:6px;padding:5px 12px;cursor:pointer;color:var(--mu)}
+.seg button.on{background:var(--p3);color:var(--tx);box-shadow:0 0 0 1px #3a4150 inset}
+
+/* sidebar */
+aside{border-right:1px solid var(--bd);background:var(--p1);overflow:auto;padding:12px 12px 24px}
+.step{border-radius:var(--r);margin-bottom:4px}
+.sh{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:var(--r);cursor:pointer;user-select:none}
+.sh:hover{background:var(--p2)}
+.step.dis .sh{cursor:default;opacity:.42}
+.step.dis .sh:hover{background:none}
+.num{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;border:1.5px solid var(--fa);color:var(--mu)}
+.step.done .num{background:var(--ok);border-color:var(--ok);color:#07160f}
+.step.active .num{border-color:var(--ac);color:var(--ac)}
+.step.active.done .num{background:var(--ok);border-color:var(--ok);color:#07160f;box-shadow:0 0 0 3px rgba(90,184,255,.35)}
+.st{flex:1;font-weight:600}
+.step:not(.active) .st{font-weight:500}
+.ss{font-size:12px;color:var(--mu)}
+.opt{font-size:11px;color:var(--mu);border:1px solid var(--bd);border-radius:99px;padding:0 7px;margin-left:6px;font-weight:400}
+.step.active{background:var(--p2);box-shadow:0 0 0 1px var(--bd) inset}
+.step.active .sh:hover{background:none}
+.sb{padding:2px 14px 14px 45px}
+.desc{color:#c3c8d2;margin:0 0 10px}
+.desc b{color:var(--tx)}
+.illo{display:block;width:100%;height:auto;background:#12151b;border:1px solid var(--bd);border-radius:8px;margin:4px 0 10px}
+.illo .g{stroke:#3d4452;stroke-width:1.5}
+.illo .b{fill:#232834;stroke:#4c5466;stroke-width:1.5}
+.illo .c{fill:none;stroke:#68718a;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.illo .w{fill:#1d2129;stroke:#5b6377;stroke-width:2}
+.illo .h{fill:#5b6377}
+.illo .pd{fill:var(--ac)}
+.illo .pp{fill:none;stroke:var(--fa);stroke-width:1.5}
+.illo .pn{fill:var(--ac)}
+.illo .ring{fill:none;stroke:var(--ac);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:ring 1.4s ease-out infinite}
+@keyframes ring{0%{opacity:.9;transform:scale(.6)}100%{opacity:0;transform:scale(2.2)}}
+.pts{list-style:none;padding:0;margin:0 0 10px}
+.pts li{display:flex;align-items:center;gap:9px;padding:3px 0;color:var(--mu)}
+.pts li i{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--fa);display:grid;place-items:center;font-style:normal;font-size:10px}
+.pts li.d{color:#c3c8d2}
+.pts li.d i{background:var(--ac);border-color:var(--ac);color:#06121d}
+.pts li.n{color:var(--tx);font-weight:600}
+.pts li.n i{border-color:var(--ac);box-shadow:0 0 0 3px var(--acs)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.lab{color:var(--mu);font-size:13px;min-width:64px}
+select{background:var(--p3);border:1px solid var(--bd);border-radius:8px;padding:5px 8px}
+.acts{display:flex;gap:8px;margin-top:12px;align-items:center}
+.acts .sp{flex:1}
+.fb{margin:6px 0 4px;padding:8px 10px;border-radius:8px;background:#12151b;border:1px solid var(--bd);font-size:13px}
+.fb .k{color:var(--mu)}
+.fb.ok{border-color:rgba(69,185,140,.45)}
+.fb.warn{border-color:rgba(242,169,59,.5)}
+.fb .v{font-weight:700;font-variant-numeric:tabular-nums}
+.fb.ok .s{color:var(--ok)} .fb.warn .s{color:var(--wa)}
+.hint{font-size:12px;color:var(--mu);margin:6px 0 0}
+
+/* results */
+.res{padding:10px 0;border-top:1px solid var(--bd)}
+.res:first-child{border-top:0}
+.rh{display:flex;align-items:center;gap:9px}
+.chip{flex:none;font-size:11.5px;font-weight:600;border-radius:99px;padding:1px 8px 1px 6px;display:inline-flex;align-items:center;gap:4px}
+.chip::before{content:"";width:13px;height:13px;border-radius:50%;display:inline-grid;place-items:center;font-size:9px;line-height:13px;text-align:center}
+.res.ok .chip{color:var(--ok);background:rgba(69,185,140,.12)}
+.res.ok .chip::before{content:"✓";background:var(--ok);color:#07160f}
+.res.warn .chip{color:var(--wa);background:rgba(242,169,59,.12)}
+.res.warn .chip::before{content:"!";background:var(--wa);color:#1d1305;font-weight:800}
+.res.info .chip{color:var(--ac);background:var(--acs)}
+.res.info .chip::before{content:"i";background:var(--ac);color:#06121d;font-weight:800}
+.res.na .chip{color:var(--mu);background:var(--p3)}
+.res.na .chip::before{content:"–";background:var(--fa);color:var(--p1)}
+.rh b{flex:1;font-weight:600}
+.rh .v{font-variant-numeric:tabular-nums;font-weight:700}
+.res.na .v{color:var(--mu);font-weight:400}
+.note{font-size:12.5px;color:var(--mu);margin:3px 0 0 0}
+.bar{position:relative;height:6px;border-radius:3px;background:var(--p3);margin:8px 2px 2px}
+.bar .rg{position:absolute;top:0;bottom:0;background:rgba(69,185,140,.35);border-radius:3px}
+.bar .dt{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;border:2px solid var(--p2)}
+.res.ok .bar .dt{background:var(--ok)} .res.warn .bar .dt{background:var(--wa)}
+.bar .dt.edge{border-radius:2px}
+
+/* main */
+main{position:relative;display:flex;flex-direction:column;min-width:0;min-height:0}
+.prompt{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--bd);background:var(--p1);min-height:50px}
+.prompt .pl{font-size:12px;color:var(--ac);font-weight:700;letter-spacing:.06em;border:1px solid rgba(90,184,255,.4);border-radius:6px;padding:1px 7px}
+.prompt .pt{font-size:15.5px;font-weight:600}
+.prompt .pt em{font-style:normal;color:var(--ac)}
+.prompt .pc{color:var(--mu);font-size:13px}
+.prompt.done .pl{color:var(--ok);border-color:rgba(69,185,140,.5)}
+.prompt .sp{flex:1}
+.stage{position:relative;flex:1;min-height:0;overflow:hidden;background:
+  radial-gradient(circle at 1px 1px,#1c2028 1px,transparent 0) 0 0/22px 22px,#0b0d11}
+#cv{position:absolute;inset:0;touch-action:none}
+.empty{position:absolute;inset:24px;border:1.5px dashed #343a47;border-radius:14px;display:grid;place-items:center;text-align:center;color:var(--mu);pointer-events:none}
+.empty.drag{border-color:var(--ac);background:var(--acs)}
+.empty .big{font-size:17px;color:var(--tx);font-weight:600;margin-bottom:6px}
+.empty .btns{pointer-events:auto;display:flex;gap:8px;justify-content:center;margin-top:14px}
+.hud{position:absolute;right:14px;bottom:14px;display:flex;gap:6px;align-items:center}
+.hud .tip{font-size:12px;color:var(--mu);background:rgba(14,16,20,.8);border:1px solid var(--bd);border-radius:8px;padding:5px 10px;margin-right:4px}
+.hud .btn{background:rgba(26,30,38,.92)}
+.vtabs{position:absolute;left:14px;top:12px}
+#loupe{position:absolute;width:152px;height:152px;border-radius:50%;border:2px solid var(--ac);box-shadow:0 6px 24px rgba(0,0,0,.6);pointer-events:none;display:none;overflow:hidden;background:#000}
+#toast{position:absolute;left:50%;top:64px;transform:translateX(-50%);background:var(--p3);border:1px solid var(--bd);border-radius:8px;padding:7px 14px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
+#toast.on{opacity:1}
+kbd{font:12px ui-monospace,monospace;background:var(--p3);border:1px solid var(--bd);border-bottom-width:2px;border-radius:4px;padding:0 5px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <span class="brand">UTV 比例檢查</span><span class="tag" title="工具版本">v3.0.0</span>
+    <span class="sp"></span>
+    <label class="pid">受試者 <input id="pid" value="S01"></label>
+    <button class="btn sm ghost" id="reset">全部重來</button>
+  </header>
+  <aside id="steps"></aside>
+  <main>
+    <div class="prompt" id="prompt"></div>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="empty" id="empty"></div>
+      <div class="vtabs" id="vtabs"></div>
+      <div class="hud" id="hud">
+        <span class="tip">滾輪縮放　拖曳空白處移動　拖曳點可微調　<kbd>Ctrl</kbd>+<kbd>Z</kbd> 上一點</span>
+        <button class="btn sm" id="zout" title="縮小">−</button>
+        <button class="btn sm" id="zin" title="放大">＋</button>
+        <button class="btn sm" id="zfit">符合畫面</button>
+      </div>
+      <canvas id="loupe" width="152" height="152"></canvas>
+      <div id="toast"></div>
+    </div>
+  </main>
+</div>
+<input type="file" id="file" accept="image/*" hidden>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ---------- 參考值 ---------- */
+const RANGE = { wb:[3.8,4.5], tan:[1.05,1.4], h:[2.5,2.8], oh:[0.5,0.65] };
+const SIT_MM = 965;          // 身高 185 cm 坐高（座面到頭頂）
+const SB_LEN = 780, SB_TILT = 15;   // 一般賽車座椅：椅背頂端到臀部約 78 cm、椅背後傾約 15°
+const HEAD_OK_MM = 50;       // 頭頂上方至少保留
+const W_MAX_MM = 1626;       // 64 吋
+const W_MIN_D = 1.9;         // 全寬下限（輪徑倍數）
+const AC = '#5ab8ff', OK = '#45b98c', WA = '#f2a93b', NEU = 'rgba(232,234,239,.75)';
+
+/* ---------- 狀態 ---------- */
+const S = {
+  rampDeg: {}, wheels: 4, tireIn: 30, step: 0, view: 'side',
+  img: { side: null, front: null }, name: { side: '', front: '' },
+  T: { side: null, front: null }, P: {}, angleSkip: false
+};
+const Dmm = () => S.tireIn * 25.4;
+
+/* ---------- 步驟定義 ---------- */
+function steps() {
+  const six = S.wheels === 6;
+  return [
+    { id:'load', t:'載入正側視圖', view:'side' },
+    { id:'tire', t:'量輪胎大小', view:'side', pts:[['tt','任一個輪胎的最上緣'],['tb','同一個輪胎的最下緣（接地處）']] },
+    { id:'wheels', t:'點輪子中心', view:'side', pts: six
+        ? [['fc','左邊輪子的中心'],['mc','中間輪子的中心'],['rc','右邊輪子的中心']]
+        : [['fc','左邊輪子的中心'],['rc','右邊輪子的中心']] },
+    { id:'body', t:'點車身外緣', view:'side', pts:[['roof','車頂（防滾籠）最高點'],['nose','車頭最前端（含保險桿）'],['tail','車尾最後端（車身，不算尾翼、行李架）']] },
+    { id:'seat', t:'檢查頭部空間', view:'side', pts:[['stop','前排座椅的最上緣（頭枕頂端）'],['cage','人形頭頂正上方的防滾籠下緣']] },
+    { id:'front', t:'正前視：量全寬', view:'front', pts:[['ftt','任一輪胎的最上緣'],['ftb','同一個輪胎的最下緣'],['fl','車身最左端'],['fr','車身最右端']] },
+    { id:'angle', t:'通過角', opt:true, view:'side', pts:[['apF','左端斜坡線'],['apR','右端斜坡線']] },
+    { id:'result', t:'檢查結果', view:'side' }
+  ];
+}
+const cur = () => steps()[S.step];
+const ptsDone = st => !st.pts || st.pts.every(([k]) => S.P[k]);
+function stepDone(st) {
+  if (st.id === 'load') return !!S.img.side;
+  if (st.id === 'front') return !!S.img.front && ptsDone(st);
+  if (st.id === 'angle') return S.angleSkip || ptsDone(st);
+  if (st.id === 'result') return false;
+  return ptsDone(st);
+}
+function stepEnabled(i) {
+  const L = steps(), id = L[i].id, done = k => stepDone(L.find(s => s.id === k));
+  if (id === 'load' || id === 'result') return true;
+  if (id === 'front') return done('tire');
+  if (id === 'tire') return done('load');
+  if (id === 'wheels') return done('tire');
+  return done('wheels');
+}
+
+/* ---------- 向量 ---------- */
+const sub = (a,b) => [a[0]-b[0], a[1]-b[1]], add = (a,b) => [a[0]+b[0], a[1]+b[1]];
+const mul = (a,k) => [a[0]*k, a[1]*k], dot = (a,b) => a[0]*b[0] + a[1]*b[1];
+const len = a => Math.hypot(a[0], a[1]), dist = (a,b) => len(sub(a,b)), unit = a => mul(a, 1/(len(a)||1));
+
+/* 側視幾何：以輪心連線為地面方向，可修正圖片傾斜 */
+function geo() {
+  const P = S.P; if (!P.tt || !P.tb) return null;
+  const Dp = dist(P.tt, P.tb), g = { Dp, r: Dp/2 };
+  if (!P.fc) return g;
+  const f = P.fc, last = P.rc || P.mc;
+  const d = last ? unit(sub(last, f)) : [1,0];
+  let n = [d[1], -d[0]]; if (n[1] > 0) n = mul(n, -1);
+  Object.assign(g, { f, d, n,
+    along: p => dot(sub(p, f), d),
+    h: p => dot(sub(p, f), n) + g.r,
+    at: (a, h) => add(add(f, mul(d, a)), mul(n, h - g.r)) });
+  g.L = P.rc ? g.along(P.rc) : 0;
+  // 車頭在哪一端：看車頭點靠近哪個輪子（不靠使用者分左右前後）
+  g.noseLeft = P.nose ? g.along(P.nose) < g.L/2 : true;
+  g.rear = g.noseLeft ? d : mul(d, -1);
+  return g;
+}
+
+/* ---------- 量測結果 ---------- */
+function ratioItem(id, label, v, lo, hi, lowW, highW, step) {
+  if (v == null || !isFinite(v)) return { id, label, st:'na', txt:'未量測', note:`範圍 ${lo}–${hi} D`, step };
+  const ok = v >= lo && v <= hi;
+  return { id, label, st: ok ? 'ok' : 'warn', txt: v.toFixed(2) + ' D', step,
+    note: (ok ? '在市售範圍內' : (v < lo ? lowW : highW)) + `　範圍 ${lo}–${hi} D`, bar:{ v, lo, hi } };
+}
+function metrics() {
+  const P = S.P, g = geo(), out = [], ok = g && g.f, D = g && g.Dp;
+  const has = (...k) => ok && k.every(x => P[x]);
+  if (S.wheels === 4) {
+    out.push(ratioItem('wb','軸距', has('rc') ? g.along(P.rc)/D : null, ...RANGE.wb, '偏短', '偏長', 'wheels'));
+  } else {
+    // 六輪：較長的一段當主軸距，較短的一段是後方雙軸
+    let a1 = null, a2 = null;
+    if (has('mc','rc')) { const x = g.along(P.mc)/D, y = (g.L - g.along(P.mc))/D; a1 = Math.max(x,y); a2 = Math.min(x,y); }
+    out.push(ratioItem('wb','主軸距（前輪到中輪）', a1, ...RANGE.wb, '偏短', '偏長', 'wheels'));
+    out.push(ratioItem('tan','後雙軸間距（中輪到後輪）', a2, ...RANGE.tan, '太近，輪胎可能互相碰到', '偏遠', 'wheels'));
+  }
+  out.push(ratioItem('roof','車頂高度', has('roof') ? g.h(P.roof)/D : null, ...RANGE.h, '偏低', '偏高', 'body'));
+  const oh = p => { const a = g.along(p); return (a < g.L/2 ? -a : a - g.L)/D; };   // 到最近一端輪心、往外的距離
+  out.push(ratioItem('nose','車頭懸伸', has('nose','rc') ? oh(P.nose) : null, ...RANGE.oh, '偏短', '偏長', 'body'));
+  out.push(ratioItem('tail','車尾懸伸', has('tail','rc') ? oh(P.tail) : null, ...RANGE.oh, '偏短', '偏長', 'body'));
+
+  // 頭部空間
+  if (has('seat','cage')) {
+    const k = Dmm()/D, headH = g.h(P.seat) + SIT_MM/k, clr = (g.h(P.cage) - headH) * k, r = Math.round(clr);
+    out.push({ id:'head', label:'頭部空間', step:'seat', st: clr >= HEAD_OK_MM ? 'ok' : 'warn',
+      txt: (r >= 0 ? '+' : '') + r + ' mm',
+      note: clr >= HEAD_OK_MM ? `頭頂上方還有 ${r} mm` : clr >= 0 ? `只剩 ${r} mm，戴安全帽會頂到（建議 ≥ ${HEAD_OK_MM} mm）` : `頭頂高出防滾籠 ${-r} mm`,
+      extra:`以身高 185 cm、輪胎 ${S.tireIn} 吋換算；人形${S.hipManual ? '位置經手動調整' : '依一般賽車座椅自動放置'}` });
+  } else out.push({ id:'head', label:'頭部空間', step:'seat', st:'na', txt:'未量測', note:'185 cm 乘員頭頂到防滾籠' });
+
+  // 全寬
+  if (S.img.front && P.ftt && P.ftb && P.fl && P.fr) {
+    const tp = dist(P.ftt, P.ftb), wd = Math.abs(P.fr[0]-P.fl[0])/tp, mm = wd*Dmm(), hiD = W_MAX_MM/Dmm();
+    const st = (mm > W_MAX_MM || wd < W_MIN_D) ? 'warn' : 'ok';
+    out.push({ id:'width', label:'全寬', step:'front', st, txt:`${(mm/25.4).toFixed(1)} 吋`,
+      note: (mm > W_MAX_MM ? '超過 64 吋（1,626 mm）上限' : wd < W_MIN_D ? `偏窄，市售約 ${W_MIN_D} D 以上` : '在範圍內')
+        + `　${Math.round(mm).toLocaleString('en-US')} mm・${wd.toFixed(2)} D`,
+      bar:{ v: wd, lo: W_MIN_D, hi: +hiD.toFixed(2) }, extra:`以輪胎 ${S.tireIn} 吋換算；上限 64 吋` });
+  } else out.push({ id:'width', label:'全寬', step:'front', st:'na', txt:'未量測', note:`範圍 ${W_MIN_D} D～64 吋` });
+
+  // 通過角
+  const A = angles();
+  if (A.F || A.R) {
+    const f = a => a ? (a.err ? '要點在輪胎外側' : a.tireFirst ? '≥ 90°' : a.deg.toFixed(0) + '°') : '—';
+    const tf = [A.F, A.R].some(a => a && a.tireFirst);
+    out.push({ id:'angle', label:'接近角／離去角', step:'angle', st:'info', txt:`${f(A.F)}／${f(A.R)}`, note: (tf ? '≥ 90° 表示這個點沒有凸出輪胎外，輪胎會先碰到地形，不影響通過角。' : '') + '僅供參考，不判定' });
+  } else out.push({ id:'angle', label:'接近角／離去角', step:'angle', st:'na', txt: S.angleSkip ? '略過（選做）' : '未量測', note:'選做' });
+  return out;
+}
+/* 通過角：θ = atan2(w,u) + asin(r/R)，以輪心連線為地面 */
+function angles() {
+  const g = geo(), o = {}; if (!g || !g.f || !S.P.rc) return o;
+  for (const [k, left] of [['apF', true], ['apR', false]]) { const deg = S.rampDeg[k]; if (deg == null) continue;
+    const kind = left === g.noseLeft ? 'F' : 'R';
+    o[kind] = { deg, tireFirst: deg >= 89.5, p: S.P[k], out: left ? mul(g.d, -1) : g.d, kind, left };
+  }
+  return o;
+}
+
+/* ---------- 畫布 ---------- */
+const cv = $('#cv'), cx = cv.getContext('2d'), stage = $('#stage');
+let dpr = 1, W = 0, H = 0, hover = null;
+const T = () => S.T[S.view];
+function resize() {
+  const r = stage.getBoundingClientRect(); dpr = window.devicePixelRatio || 1; W = r.width; H = r.height;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); cv.style.width = W+'px'; cv.style.height = H+'px';
+  if (S.img[S.view] && !T()) fit(); draw();
+}
+function fit() {
+  const im = S.img[S.view]; if (!im) return;
+  const s = Math.min((W-160)/im.width, (H-110)/im.height);
+  S.T[S.view] = { s, ox:(W-im.width*s)/2, oy:(H-im.height*s)/2 - 10 };
+}
+const toS = p => { const t = T(); return [p[0]*t.s + t.ox, p[1]*t.s + t.oy]; };
+const toI = (x,y) => { const t = T(); return [(x-t.ox)/t.s, (y-t.oy)/t.s]; };
+
+function line(a, b, col, w = 2, dash) {
+  const A = toS(a), B = toS(b);
+  cx.save(); cx.strokeStyle = col; cx.lineWidth = w; cx.setLineDash(dash || []);
+  cx.beginPath(); cx.moveTo(A[0],A[1]); cx.lineTo(B[0],B[1]); cx.stroke(); cx.restore();
+}
+function polyFill(pts, fill, stroke) {
+  cx.save(); cx.beginPath(); pts.map(toS).forEach((p,i) => i ? cx.lineTo(p[0],p[1]) : cx.moveTo(p[0],p[1])); cx.closePath();
+  cx.fillStyle = fill; cx.fill(); cx.setLineDash([5,4]); cx.strokeStyle = stroke; cx.lineWidth = 1.2; cx.stroke(); cx.restore();
+}
+function ring(c, rImg, col, dash) {
+  const C = toS(c); cx.save(); cx.strokeStyle = col; cx.lineWidth = 1.6; cx.setLineDash(dash || []);
+  cx.beginPath(); cx.arc(C[0], C[1], rImg*T().s, 0, 7); cx.stroke(); cx.restore();
+}
+function pill(text, x, y, col, align = 'center') {
+  cx.save(); cx.font = '600 12.5px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
+  const w = cx.measureText(text).width + 14, h = 22;
+  let x0 = align === 'center' ? x - w/2 : align === 'right' ? x - w : x;
+  x0 = Math.max(4, Math.min(W - w - 4, x0)); const y0 = Math.max(4, Math.min(H - h - 4, y - h/2));
+  cx.fillStyle = 'rgba(12,14,18,.88)'; cx.strokeStyle = col; cx.lineWidth = 1;
+  cx.beginPath(); cx.roundRect(x0, y0, w, h, 6); cx.fill(); cx.stroke();
+  cx.fillStyle = col; cx.textBaseline = 'middle'; cx.fillText(text, x0 + 7, y0 + h/2 + .5); cx.restore();
+}
+function marker(p, col, label, active) {
+  const [x,y] = toS(p); cx.save();
+  if (active) { cx.fillStyle = 'rgba(90,184,255,.18)'; cx.beginPath(); cx.arc(x,y,13,0,7); cx.fill(); }
+  cx.strokeStyle = 'rgba(0,0,0,.7)'; cx.lineWidth = 4;
+  cx.beginPath(); cx.arc(x,y,6.5,0,7); cx.stroke();
+  cx.strokeStyle = col; cx.lineWidth = 2; cx.beginPath(); cx.arc(x,y,6.5,0,7); cx.stroke();
+  cx.fillStyle = col; cx.beginPath(); cx.arc(x,y,1.8,0,7); cx.fill();
+  cx.restore();
+  if (label) pill(label, x + 12, y - 16, col, 'left');
+}
+function band(g, a0, a1, h0, h1, label, side = 'top') {
+  polyFill([g.at(a0,h0), g.at(a1,h0), g.at(a1,h1), g.at(a0,h1)], 'rgba(90,184,255,.13)', 'rgba(90,184,255,.6)');
+  if (label) { const p = toS(g.at((a0+a1)/2, side === 'top' ? h1 : h0)); pill(label, p[0], p[1] + (side === 'top' ? -16 : 16), AC); }
+}
+const stCol = st => st === 'ok' ? OK : st === 'warn' ? WA : AC;
+
+function draw() {
+  cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,W,H);
+  const im = S.img[S.view];
+  $('#empty').style.display = im ? 'none' : '';
+  if (!im) return;
+  const t = T(); cx.imageSmoothingQuality = 'high';
+  cx.save(); cx.shadowColor = 'rgba(0,0,0,.5)'; cx.shadowBlur = 18; cx.drawImage(im, t.ox, t.oy, im.width*t.s, im.height*t.s); cx.restore();
+  try { S.view === 'side' ? drawSide() : drawFront(); } catch (e) { console.warn(e); }
+}
+function drawSide() {
+  const P = S.P, id = cur().id, g = geo(), M = Object.fromEntries(metrics().map(m => [m.id, m])), isR = id === 'result';
+  // 輪徑
+  if (P.tt && P.tb && id === 'tire') {
+    line(P.tt, P.tb, AC, 2);
+    const m = toS([(P.tt[0]+P.tb[0])/2, (P.tt[1]+P.tb[1])/2]);
+    pill(`輪徑 D（${S.tireIn} 吋）`, m[0] + 14, m[1], AC, 'left');
+  }
+  if (g && g.f) {
+    const D = g.Dp, centers = ['fc','mc','rc'].filter(k => P[k]);
+    centers.forEach(k => ring(P[k], g.r, 'rgba(90,184,255,.85)', [6,5]));
+    const lastA = P.rc ? g.along(P.rc) : 0;
+    if (P.rc) line(g.at(-1.1*D, 0), g.at(lastA + 1.1*D, 0), 'rgba(232,234,239,.38)', 1.4, [3,6]);
+
+    // 步驟 3：輪心
+    if (id === 'wheels') {
+      if (S.wheels === 4) band(g, RANGE.wb[0]*D, RANGE.wb[1]*D, 0, D, '右輪中心常見位置');
+    }
+    if (id === 'wheels' || isR) {
+      const seg = (a, b, m) => { if (!P[a] || !P[b] || m.st === 'na') return;
+        const c = stCol(m.st); line(P[a], P[b], c, 2.4);
+        const A = toS(P[a]), B = toS(P[b]); pill(`${m.label.split('（')[0]} ${m.txt}`, (A[0]+B[0])/2, (A[1]+B[1])/2 - 16, c); };
+      if (S.wheels === 4) seg('fc','rc', M.wb);
+      else if (P.mc && P.rc) { const leftLong = g.along(P.mc) >= g.L - g.along(P.mc);
+        seg('fc','mc', leftLong ? M.wb : M.tan); seg('mc','rc', leftLong ? M.tan : M.wb); }
+    }
+    // 步驟 4：車身
+    if (id === 'body' && P.rc) {
+      band(g, -RANGE.oh[1]*D, lastA + RANGE.oh[1]*D, RANGE.h[0]*D, RANGE.h[1]*D, `市售車車頂常見高度（${RANGE.h[0]}–${RANGE.h[1]} D）`);
+      const lt = P.nose ? (g.noseLeft ? '車頭' : '車尾') : '車頭／車尾', rt = P.nose ? (g.noseLeft ? '車尾' : '車頭') : '車頭／車尾';
+      band(g, -RANGE.oh[1]*D, -RANGE.oh[0]*D, 0, D*1.4, lt + '常見位置', 'bottom');
+      band(g, lastA + RANGE.oh[0]*D, lastA + RANGE.oh[1]*D, 0, D*1.4, rt + '常見位置', 'bottom');
+    }
+    if ((id === 'body' || isR) && P.rc) {
+      // 車頂：尺寸線放在車身外側（車頭那端再往外），不穿過車身
+      if (P.roof && M.roof.st !== 'na') { const c = stCol(M.roof.st), hR = g.h(P.roof);
+        let xa = g.noseLeft ? Math.min(-RANGE.oh[1]*D, P.nose ? g.along(P.nose) : 0) - 0.35*D : Math.max(g.L + RANGE.oh[1]*D, P.nose ? g.along(P.nose) : g.L) + 0.35*D;
+        { const sx = toS(g.at(xa, hR))[0]; if (sx < 40 || sx > W - 40) xa = g.along(P.roof); }   // 跑出畫面就改畫在車頂點上
+        line(P.roof, g.at(xa, hR), c, 1.2, [4,4]);
+        line(g.at(xa, 0), g.at(xa, hR), c, 2.2);
+        for (const hh of [0, hR]) line(g.at(xa - 0.08*D, hh), g.at(xa + 0.08*D, hh), c, 2.2);
+        const q = toS(g.at(xa, hR/2)); pill(`車頂 ${M.roof.txt}`, q[0] + (g.noseLeft ? -10 : 10), q[1], c, g.noseLeft ? 'right' : 'left'); }
+      // 懸伸：在點的高度，從點水平量到輪心的垂直線
+      for (const [key, m] of [['nose', M.nose], ['tail', M.tail]]) { const p = P[key]; if (!p || m.st === 'na') continue;
+        const c = stCol(m.st), a = g.along(p), hp = g.h(p), end = a < g.L/2 ? 0 : g.L;
+        line(g.at(end, 0), g.at(end, Math.max(hp, D) + 0.1*D), 'rgba(232,234,239,.5)', 1.2, [4,4]);
+        line(p, g.at(end, hp), c, 2.4);
+        const q = toS(g.at((a + end)/2, hp)); pill(`${m.label.slice(0,2)}懸伸 ${m.txt}`, q[0], q[1] + 18, c); }
+    }
+    // 步驟 5：頭部
+    if ((id === 'seat' || isR) && P.seat) {
+      const k = Dmm()/D, m = M.head, c = m.st === 'na' ? AC : stCol(m.st);
+      const H = manikin(g, k), hh = g.h(H.headTop);
+      drawManikin(H, k);
+      if (id === 'seat') { const q = toS(H.hip); cx.save(); cx.fillStyle = '#fff'; cx.strokeStyle = AC; cx.lineWidth = 2.5;
+        cx.beginPath(); cx.arc(q[0], q[1], hover === 'seat' ? 10 : 8, 0, 7); cx.fill(); cx.stroke(); cx.restore();
+        pill('拖曳這裡調整人形', q[0] - 14, q[1] + 22, AC, 'right'); }
+      const ha = g.along(H.headTop);
+      line(g.at(ha - 0.5*D, hh), g.at(ha + 0.5*D, hh), c, 2.2, [7,4]);
+      const q = toS(g.at(ha + 0.5*D*(dot(g.rear,g.d)>0?1:-1), hh)); pill('185 cm 乘員頭頂', q[0] + (dot(g.rear,g.d)>0?8:-8), q[1], c, dot(g.rear,g.d)>0?'left':'right');
+      if (P.cage && m.st !== 'na') { line(P.cage, g.at(g.along(P.cage), hh), c, 1.5, [2,3]); const q2 = toS(P.cage); pill(m.txt, q2[0], q2[1] - 22, c); }
+    }
+    // 選做：通過角
+    if (id === 'angle') {
+      const A = angles(); rampSeg = {};
+      for (const a of [A.F, A.R]) { if (!a || a.err) continue;
+        const R = ramp(g, a.left, Math.min(a.deg, 90)), name = a.kind === 'F' ? '接近角' : '離去角';
+        const hTip = Math.max(g.h(a.p) + 0.35*g.Dp, 1.9*g.Dp), tip = add(R.G, mul(R.u, Math.min(hTip / Math.max(Math.sin(Math.min(a.deg,90)*Math.PI/180), 1e-3), dist(R.G, a.p) + 0.6*g.Dp)));
+        rampSeg[a.left ? 'apF' : 'apR'] = [R.G, tip];
+        // 斜坡面（淡色三角形）＋斜線
+        const gEnd = g.at(g.along(tip), 0);
+        cx.save(); cx.beginPath(); [R.G, tip, gEnd].map(toS).forEach((p,i) => i ? cx.lineTo(p[0],p[1]) : cx.moveTo(p[0],p[1])); cx.closePath();
+        cx.fillStyle = 'rgba(90,184,255,.10)'; cx.fill(); cx.restore();
+        line(R.G, tip, AC, 2.6);
+        const q = toS(a.p), side = dot(a.out, g.d) > 0 ? 1 : -1;
+        pill(a.tireFirst ? `${name} ≥ 90°（輪胎先碰到）` : `${name} ${a.deg.toFixed(0)}°`, q[0] + side*18, q[1] + 24, AC, side > 0 ? 'left' : 'right');
+        const h = toS(a.p); cx.save(); cx.fillStyle = '#fff'; cx.strokeStyle = AC; cx.lineWidth = 2.5;
+        cx.beginPath(); cx.arc(h[0], h[1], hover === (a.left ? 'apF' : 'apR') ? 10 : 8, 0, 7); cx.fill(); cx.stroke(); cx.restore();
+      }
+    }
+  }
+  drawPoints('side');
+}
+/* 斜坡線：與地面夾 θ、貼著輪胎外側的切線。G＝與地面交點，T＝切點，u＝往上往外的方向 */
+function ramp(g, left, deg) {
+  const th = deg * Math.PI/180, c = left ? S.P.fc : S.P.rc, out = left ? mul(g.d, -1) : g.d;
+  const u = add(mul(out, Math.cos(th)), mul(g.n, Math.sin(th)));       // 往車外、往上（斜坡在車子前方升起）
+  const nrm = add(mul(out, Math.sin(th)), mul(g.n, -Math.cos(th)));    // 圓心指向切線
+  const T = add(c, mul(nrm, g.r)), G = add(T, mul(u, -g.h(T) / Math.max(Math.sin(th), 1e-3)));
+  return { T, G, u, out };
+}
+/* 進入通過角步驟時，兩端各放一條 20° 的斜坡線，讓使用者往上轉 */
+function initRamps() {
+  const g = geo(); if (!g || !g.f || !S.P.rc) return;
+  for (const [k, left] of [['apF', true], ['apR', false]]) if (S.rampDeg[k] == null) setRamp(k, 20);
+}
+/* 斜坡線的角度存在 rampDeg；S.P 只放線上的拖曳圓點 */
+function setRamp(k, deg) {
+  const g = geo(), R = ramp(g, k === 'apF', Math.min(deg, 89.9));
+  const th = Math.min(deg, 89.9)*Math.PI/180, hT = g.h(R.T), want = Math.max(0.8*g.Dp - hT, 0.1*g.Dp);
+  S.rampDeg[k] = deg; S.P[k] = add(R.T, mul(R.u, Math.min(want / Math.sin(th), 0.7*g.Dp)));   // 圓點放高一點，推起來比較好控制
+}
+/* 由椅背頂端推估臀部位置（賽車座椅尺寸），之後可拖曳人形微調 */
+function autoHip() {
+  const g = geo(); if (!g || !g.f || !S.P.stop) return;
+  const k = Dmm()/g.Dp, t = SB_TILT * Math.PI/180, fwd = mul(g.rear, -1);
+  S.P.seat = add(add(S.P.stop, mul(fwd, SB_LEN*Math.sin(t)/k)), mul(g.n, -SB_LEN*Math.cos(t)/k));
+}
+/* 185 cm 坐姿人形（側視，mm 換算成圖上像素）：臀部在點選處，身體往車尾後仰約 10° */
+function manikin(g, k) {
+  const px = mm => mm / k, up = g.n, back = g.rear, fwd = mul(back, -1), hip = S.P.seat;
+  const P = (b, u) => add(add(hip, mul(back, px(b))), mul(up, px(u)));
+  const headR = 110, headC = P(150, SIT_MM - headR);
+  return { hip, headC, headR: px(headR), headTop: P(150, SIT_MM), neck: P(125, SIT_MM - 2*headR - 20),
+    knee: add(add(hip, mul(fwd, px(450))), mul(up, px(110))), foot: add(add(hip, mul(fwd, px(830))), mul(up, px(-230))) };   // UTV 坐姿腿往前伸
+}
+function drawManikin(H, k) {
+  cx.save(); cx.lineCap = 'round'; cx.lineJoin = 'round';
+  const path = (pts, w, col) => { cx.strokeStyle = col; cx.lineWidth = w; cx.beginPath(); pts.map(toS).forEach((p,i) => i ? cx.lineTo(p[0],p[1]) : cx.moveTo(p[0],p[1])); cx.stroke(); };
+  const sw = Math.max(3, (130 / k) * T().s);
+  for (const [w, col] of [[sw + 2, 'rgba(10,12,16,.35)'], [sw, 'rgba(90,184,255,.38)']]) {
+    path([H.neck, H.hip, H.knee, H.foot], w, col);
+  }
+  const C = toS(H.headC), r = H.headR * T().s;
+  cx.fillStyle = 'rgba(90,184,255,.28)'; cx.strokeStyle = 'rgba(90,184,255,.95)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.arc(C[0], C[1], r, 0, 7); cx.fill(); cx.stroke();
+  cx.restore();
+}
+function drawFront() {
+  const P = S.P, im = S.img.front, M = metrics().find(m => m.id === 'width');
+  if (P.ftt && P.ftb) { line(P.ftt, P.ftb, AC, 2); const m = toS([(P.ftt[0]+P.ftb[0])/2, (P.ftt[1]+P.ftb[1])/2]); pill(`輪徑 D（${S.tireIn} 吋）`, m[0] - 14, m[1], AC, 'right'); }
+  for (const k of ['fl','fr']) if (P[k]) line([P[k][0], 0], [P[k][0], im.height], 'rgba(232,234,239,.45)', 1.2, [5,5]);
+  if (P.fl && P.fr && M.st !== 'na') {
+    const c = stCol(M.st), y = Math.max(P.fl[1], P.fr[1]) + (P.ftt && P.ftb ? dist(P.ftt,P.ftb)*0.35 : 40);
+    line([P.fl[0], y], [P.fr[0], y], c, 2.4);
+    const q = toS([(P.fl[0]+P.fr[0])/2, y]); pill(`全寬 ${M.txt}`, q[0], q[1] + 16, c);
+  }
+  drawPoints('front');
+}
+function drawPoints(view) {
+  const st = cur(), keys = st.pts && st.view === view ? st.pts.map(p => p[0]) : [];
+  const nxt = keys.find(k => !S.P[k]);
+  const all = view === 'front' ? ['ftt','ftb','fl','fr'] : ['tt','tb','fc','mc','rc','roof','nose','tail','stop','seat','cage'];
+  for (const k of all) { if (!S.P[k] || keys.includes(k)) continue; const [x,y] = toS(S.P[k]);
+    cx.save(); cx.fillStyle = 'rgba(232,234,239,.7)'; cx.strokeStyle = 'rgba(0,0,0,.6)'; cx.lineWidth = 2;
+    cx.beginPath(); cx.arc(x,y,3.2,0,7); cx.stroke(); cx.fill(); cx.restore(); }
+  if (st.id !== 'angle') keys.forEach((k,i) => { if (S.P[k]) marker(S.P[k], AC, String(i+1), k === hover); });
+  return nxt;
+}
+
+/* ---------- 放大鏡 ---------- */
+const lp = $('#loupe'), lx = lp.getContext('2d');
+function loupe(x, y, show) {
+  if (!show) { lp.style.display = 'none'; return; }
+  const Z = 3, R = 152, src = R / Z;
+  lx.fillStyle = '#000'; lx.fillRect(0,0,R,R);
+  lx.drawImage(cv, (x - src/2)*dpr, (y - src/2)*dpr, src*dpr, src*dpr, 0, 0, R, R);
+  lx.strokeStyle = AC; lx.lineWidth = 1;
+  lx.beginPath(); lx.moveTo(R/2, 0); lx.lineTo(R/2, R/2 - 7); lx.moveTo(R/2, R/2 + 7); lx.lineTo(R/2, R);
+  lx.moveTo(0, R/2); lx.lineTo(R/2 - 7, R/2); lx.moveTo(R/2 + 7, R/2); lx.lineTo(R, R/2); lx.stroke();
+  lx.beginPath(); lx.arc(R/2, R/2, 2, 0, 7); lx.fillStyle = AC; lx.fill();
+  let L = x + 26, Tp = y - R - 26; if (L + R > W - 8) L = x - R - 26; if (Tp < 8) Tp = y + 26;
+  lp.style.left = L + 'px'; lp.style.top = Tp + 'px'; lp.style.display = 'block';
+}
+
+/* ---------- 互動 ---------- */
+let drag = null;
+const local = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+const curKeys = () => { const st = cur(); return st.pts && st.view === S.view ? st.pts.map(p => p[0]) : []; };
+const placing = () => { const k = curKeys(); return k.length && k.some(x => !S.P[x]); };
+let rampSeg = {};
+/* 左右推斜線：抓住的高度固定，只看游標的左右位置，反推出斜線角度（不會卡在輪胎裡） */
+function rampH0(k, p) { if (k !== 'apF' && k !== 'apR') return null; const g = geo(); return Math.max(g.h(p), 0.3*g.Dp); }
+function rampPush(left, h0, p) {
+  const g = geo(), c = left ? S.P.fc : S.P.rc, out = left ? mul(g.d, -1) : g.d, target = dot(sub(p, c), out);
+  const at = deg => { const R = ramp(g, left, deg), th = deg*Math.PI/180; return add(R.G, mul(R.u, h0 / Math.sin(th))); };
+  const ox = q => dot(sub(q, c), out);
+  let lo = 0.5, hi = 90;                       // 角度越大，同高度的點越靠近車身（ox 越小）
+  if (target >= ox(at(lo))) return lo;
+  if (target <= ox(at(89.9))) return 90;
+  for (let i = 0; i < 40; i++) { const m = (lo + hi)/2; if (ox(at(m)) > target) lo = m; else hi = m; }
+  return (lo + hi)/2;
+}
+function segDist(p, a, b) { const ab = sub(b,a), t = Math.max(0, Math.min(1, dot(sub(p,a),ab)/(dot(ab,ab)||1))); return dist(p, add(a, mul(ab,t))); }
+function hit(x, y) {
+  let best = null, bd = 13;
+  if (cur().id === 'angle') {   // 斜坡線：抓圓點或線上任何位置都可以推
+    for (const k of ['apF','apR']) if (S.P[k]) { const p = toS(S.P[k]), d = Math.hypot(p[0]-x, p[1]-y); if (d < bd) { bd = d; best = k; } }
+    if (best) return best;
+    for (const [k, sg] of Object.entries(rampSeg)) { const d = segDist([x,y], toS(sg[0]), toS(sg[1])); if (d < 10) return k; }
+    return null;
+  }
+  const ks = curKeys().concat(cur().id === 'seat' && S.P.seat ? ['seat'] : []);
+  for (const k of ks) if (S.P[k]) { const p = toS(S.P[k]), d = Math.hypot(p[0]-x, p[1]-y); if (d < bd) { bd = d; best = k; } }
+  return best;
+}
+cv.addEventListener('pointerdown', e => {
+  if (!S.img[S.view] || e.button > 0) return; const [x,y] = local(e), k = hit(x,y);
+  drag = k ? { type:'pt', key:k, h0: rampH0(k, toI(x,y)), x0:x, y0:y, deg0: S.rampDeg[k] } : { type:'pan', sx:x, sy:y, ox:T().ox, oy:T().oy, moved:false };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (!S.img[S.view]) return; const [x,y] = local(e);
+  if (drag && drag.type === 'pt') { const np = toI(x,y);
+    if (drag.h0 != null) {   // 左右推：往車身方向拖越多，角度越大（每 3 px 約 1°）
+      const g = geo(), o = toS(add(S.P[drag.key], mul(drag.key === 'apF' ? mul(g.d,-1) : g.d, 1))), h = toS(S.P[drag.key]);
+      const sx = Math.sign(o[0] - h[0]) || 1, inward = -(x - drag.x0) * sx;
+      setRamp(drag.key, Math.max(0, Math.min(90, drag.deg0 + inward / 3))); draw(); loupe(x,y,false); return; }
+    S.P[drag.key] = np;
+    if (drag.key === 'seat') S.hipManual = true; else if (drag.key === 'stop' && !S.hipManual) autoHip();
+    draw(); loupe(x,y,true); return; }
+  if (drag && drag.type === 'pan') {
+    if (Math.hypot(x-drag.sx, y-drag.sy) > 4) drag.moved = true;
+    if (drag.moved) { T().ox = drag.ox + x - drag.sx; T().oy = drag.oy + y - drag.sy; draw(); cv.style.cursor = 'grabbing'; loupe(0,0,false); return; }
+  }
+  const h = hit(x,y); if (h !== hover) { hover = h; draw(); }
+  cv.style.cursor = h ? (cur().id === 'angle' ? 'ew-resize' : 'move') : placing() ? 'crosshair' : 'grab';
+  loupe(x, y, placing() || !!h);
+});
+cv.addEventListener('pointerup', e => {
+  if (!drag) return; const [x,y] = local(e), d = drag; drag = null;
+  if (d.type === 'pan' && !d.moved) place(toI(x,y));
+  else if (d.type === 'pt') { render(); toast('已調整'); }
+  else draw();
+  cv.style.cursor = placing() ? 'crosshair' : 'grab';
+});
+cv.addEventListener('pointerleave', () => { if (!drag) loupe(0,0,false); });
+cv.addEventListener('wheel', e => {
+  if (!S.img[S.view]) return; e.preventDefault();
+  const [x,y] = local(e); zoomAt(x, y, Math.pow(1.0015, -e.deltaY));
+  if (placing()) loupe(x, y, true);
+}, { passive:false });
+function zoomAt(x, y, f) {
+  const t = T(), ns = Math.max(0.05, Math.min(t.s * f, 40)), k = ns / t.s;
+  t.ox = x - (x - t.ox)*k; t.oy = y - (y - t.oy)*k; t.s = ns; draw();
+}
+$('#zin').onclick = () => S.img[S.view] && zoomAt(W/2, H/2, 1.3);
+$('#zout').onclick = () => S.img[S.view] && zoomAt(W/2, H/2, 1/1.3);
+$('#zfit').onclick = () => { if (S.img[S.view]) { fit(); draw(); } };
+
+function place(p) {
+  const st = cur(); if (!st.pts || st.view !== S.view) return;
+  const nx = st.pts.find(([k]) => !S.P[k]); if (!nx) { toast(st.id === 'angle' ? '拖曳斜坡線上的白色圓點來轉動' : '這一步的點都點好了，拖曳可微調'); return; }
+  S.P[nx[0]] = p;
+  if (nx[0] === 'stop') { S.hipManual = false; autoHip(); }
+  if (st.id === 'angle') S.angleSkip = false;
+  render();
+}
+function undo() {
+  const st = cur(); if (!st.pts) return; if (st.id === 'angle') return redo();
+  const done = st.pts.filter(([k]) => S.P[k]); if (!done.length) return;
+  const k = done[done.length-1][0]; delete S.P[k]; if (k === 'stop') { delete S.P.seat; S.hipManual = false; } render();
+}
+function redo() { const st = cur(); if (!st.pts) return; if (st.id === 'angle') { delete S.P.apF; delete S.P.apR; S.rampDeg = {}; initRamps(); render(); return; } st.pts.forEach(([k]) => delete S.P[k]); if (st.id === 'seat') { delete S.P.seat; S.hipManual = false; } render(); }
+function next() {
+  const L = steps(); if (S.step >= L.length - 1) return;
+  goto(S.step + 1);
+}
+function goto(i) {
+  if (!stepEnabled(i)) return;
+  S.step = i; S.view = steps()[i].view;
+  if (steps()[i].id === 'angle') { initRamps(); S.angleSkip = false; }
+  if (S.img[S.view] && !T()) fit();
+  hover = null; render();
+}
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+  else if (e.key === 'Enter' && stepDone(cur())) next();
+});
+
+/* ---------- 圖片 ---------- */
+let loadTarget = 'side';
+function pick(view) { loadTarget = view; $('#file').value = ''; $('#file').click(); }
+$('#file').onchange = e => { const f = e.target.files[0]; if (f) readFile(f, loadTarget); };
+function readFile(f, view) {
+  const url = URL.createObjectURL(f), im = new Image();
+  im.onload = () => setImage(view, im, f.name); im.onerror = () => toast('這個檔案打不開，請換 PNG 或 JPG');
+  im.src = url;
+}
+function setImage(view, im, name) {
+  S.img[view] = im; S.name[view] = name; S.T[view] = null;
+  const keys = view === 'front' ? ['ftt','ftb','fl','fr'] : ['tt','tb','fc','mc','rc','roof','nose','tail','stop','seat','cage','apF','apR'];
+  keys.forEach(k => delete S.P[k]);
+  if (view === 'side') { S.angleSkip = false; S.rampDeg = {}; }
+  S.view = view; fit(); render();
+  if (view === 'side' && cur().id === 'load') setTimeout(() => goto(1), 350);
+}
+['dragenter','dragover'].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); $('#empty').classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); $('#empty').classList.remove('drag'); }));
+stage.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('image/')) readFile(f, cur().view === 'front' ? 'front' : 'side'); });
+
+/* 範例圖：示範操作用，各項數值都在參考範圍內（避免示範時暗示特定問題） */
+function sample(view) {
+  const svg = view === 'side' ? sampleSide() : sampleFront();
+  const im = new Image(); im.onload = () => setImage(view, im, view === 'side' ? '範例_側視.svg' : '範例_前視.svg');
+  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+function sampleSide() {
+  const G = 780, D = 240, r = 120, f = 330, rr = f + 4.1*D, six = S.wheels === 6, mid = f + 4.0*D, rc6 = mid + 1.2*D;
+  const back = six ? rc6 : rr, roofY = G - 2.6*D, nose = f - 0.58*D, tail = back + 0.6*D;
+  const wheel = x => `<circle cx="${x}" cy="${G-r}" r="${r}" fill="#26282c"/><circle cx="${x}" cy="${G-r}" r="${r*0.58}" fill="#9aa0a8"/><circle cx="${x}" cy="${G-r}" r="${r*0.16}" fill="#55595f"/>`;
+  const Wd = six ? 2000 : 1700;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Wd}" height="900" viewBox="0 0 ${Wd} 900">
+  <rect width="${Wd}" height="900" fill="#d8dbe0"/><rect y="${G}" width="${Wd}" height="${900-G}" fill="#c9ccd2"/>
+  <path d="M${nose} 590 L${nose+40} 520 L${f+130} 470 L${f+260} 470 L${f+300} 545 L${back-200} 545 L${back-150} 470 L${tail-30} 470 L${tail} 520 L${tail} 610 L${back+90} 640 L${f-80} 650 Z" fill="#c4442f"/>
+  <path d="M${f+250} 545 L${f+330} ${roofY} L${back-260} ${roofY} L${back-160} 470" fill="none" stroke="#2d3036" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M${f+600} ${roofY} L${f+620} 545" stroke="#2d3036" stroke-width="12"/>
+  <path d="M${f+430} 520 h170 l50 -215" fill="none" stroke="#3a3d44" stroke-width="22" stroke-linecap="round"/>
+  <path d="M${f+700} 520 h150 l50 -215" fill="none" stroke="#3a3d44" stroke-width="22" stroke-linecap="round"/>
+  ${wheel(f)}${six ? wheel(mid) + wheel(rc6) : wheel(rr)}
+  <text x="30" y="50" font-family="sans-serif" font-size="26" fill="#6b7078">範例圖（僅供練習操作）</text></svg>`;
+}
+function sampleFront() {
+  const G = 800, D = 240, cxm = 600, half = 1.95*D/2, tw = 100;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <rect width="1200" height="900" fill="#d8dbe0"/><rect y="${G}" width="1200" height="100" fill="#c9ccd2"/>
+  <rect x="${cxm-half+6}" y="${G-D}" width="${tw}" height="${D}" rx="26" fill="#26282c"/>
+  <rect x="${cxm+half-6-tw}" y="${G-D}" width="${tw}" height="${D}" rx="26" fill="#26282c"/>
+  <path d="M${cxm-half} 600 L${cxm-half+30} 470 L${cxm+half-30} 470 L${cxm+half} 600 L${cxm+half-40} 640 L${cxm-half+40} 640 Z" fill="#c4442f"/>
+  <path d="M${cxm-half+50} 470 L${cxm-half+90} 220 L${cxm+half-90} 220 L${cxm+half-50} 470" fill="none" stroke="#2d3036" stroke-width="16"/>
+  <rect x="${cxm-110}" y="520" width="220" height="40" rx="8" fill="#2d3036"/>
+  <text x="30" y="50" font-family="sans-serif" font-size="26" fill="#6b7078">範例圖（僅供練習操作）</text></svg>`;
+}
+
+/* ---------- 示意小圖 ---------- */
+function illoSeat() {
+  const nx = ['stop','cage'].find(k => !S.P[k]);
+  const dot = (k, x, y) => k === nx ? `<circle class="ring" cx="${x}" cy="${y}" r="5"/><circle class="pn" cx="${x}" cy="${y}" r="4.5"/>` : S.P[k] ? `<circle class="pd" cx="${x}" cy="${y}" r="3.5"/>` : `<circle class="pp" cx="${x}" cy="${y}" r="3.5"/>`;
+  return `<svg class="illo" viewBox="0 0 260 112" aria-hidden="true">
+    <path class="c" d="M40 10 H230"/>
+    <text x="236" y="13" font-size="8" fill="#8b93a4">防滾籠</text>
+    <path d="M151 31 L136 86" stroke="#4c5466" stroke-width="9" stroke-linecap="round"/>
+    <path d="M136 86 H88" stroke="#4c5466" stroke-width="9" stroke-linecap="round" stroke-dasharray="3 3" opacity=".6"/>
+    <circle cx="66" cy="52" r="9" fill="none" stroke="#68718a" stroke-width="2.2"/><path class="c" d="M66 61 L76 88"/>
+    <text x="40" y="44" font-size="8" fill="#8b93a4">方向盤</text>
+    <path d="M70 80 H226 V104 H70 Z" fill="#232834" stroke="#4c5466" stroke-width="1.5"/>
+    <text x="176" y="96" font-size="8" fill="#8b93a4">車門（擋住坐墊）</text>
+    <g opacity=".55"><circle cx="160" cy="26" r="9" fill="var(--ac)"/><path d="M158 37 L138 82 L96 76 L90 104" stroke="var(--ac)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <line x1="140" y1="17" x2="190" y2="17" stroke="var(--ac)" stroke-dasharray="4 3" stroke-width="1.5"/>
+    <circle cx="138" cy="82" r="4" fill="#fff" stroke="var(--ac)" stroke-width="1.5"/>
+    ${dot('stop', 151, 31)}${dot('cage', 160, 10)}
+  </svg>`;
+}
+function illo(st) {
+  if (st.id === 'seat') return illoSeat();
+  const six = S.wheels === 6, front = st.id === 'front';
+  const keys = st.pts ? st.pts.map(p => p[0]) : [], nx = keys.find(k => !S.P[k]);
+  const rx = six ? 200 : 190;
+  const pos = { tt:[60,64], tb:[60,100], fc:[60,82], mc:[156,82], rc:[rx,82], roof:[150,16], nose:[24,66], tail:[236,62],
+    seat:[118,60], cage:[118,20], apF:[30,80], apR:[230,76], ftt:[64,62], ftb:[64,100], fl:[40,70], fr:[220,70] };
+  let s = '<svg class="illo" viewBox="0 0 260 112" aria-hidden="true">';
+  if (!front) {
+    s += '<line class="g" x1="6" y1="100" x2="254" y2="100"/>';
+    s += `<path class="b" d="M24 66 L32 56 L92 52 L102 60 L${rx-48} 60 L${rx-40} 52 L230 52 L236 62 L236 74 L210 78 L40 80 Z"/>`;
+    s += `<path class="c" d="M98 58 L110 16 L${rx-40} 16 L${rx-30} 52"/>`;
+    s += '<path class="c" d="M108 60 h20 l4 -16"/>';
+    if (st.id === 'angle') s += '<path d="M30 80 L50 100 M230 76 L206 100" stroke="var(--ac)" stroke-width="1.5"/><path d="M42 100 A8 8 0 0 0 44 94 M214 100 A8 8 0 0 1 212 94" fill="none" stroke="var(--ac)" stroke-width="1.2"/>';
+    s += `<circle class="w" cx="60" cy="82" r="18"/><circle class="w" cx="${rx}" cy="82" r="18"/>` + (six ? '<circle class="w" cx="156" cy="82" r="18"/>' : '');
+  } else {
+    s += '<line class="g" x1="6" y1="100" x2="254" y2="100"/>';
+    s += '<rect class="w" x="46" y="62" width="34" height="38" rx="8"/><rect class="w" x="180" y="62" width="34" height="38" rx="8"/>';
+    s += '<path class="b" d="M40 70 L48 50 L212 50 L220 70 L210 78 L50 78 Z"/><path class="c" d="M60 50 L74 12 L186 12 L200 50"/>';
+  }
+  for (const k of keys) { const [x,y] = pos[k];
+    if (k === nx) s += `<circle class="ring" cx="${x}" cy="${y}" r="5"/><circle class="pn" cx="${x}" cy="${y}" r="4.5"/>`;
+    else if (S.P[k]) s += `<circle class="pd" cx="${x}" cy="${y}" r="3.5"/>`;
+    else s += `<circle class="pp" cx="${x}" cy="${y}" r="3.5"/>`;
+  }
+  return s + '</svg>';
+}
+
+/* ---------- 側欄 ---------- */
+const DESC = {
+  load: '用 AI 產生的<b>正側視圖</b>（車子完全側面、看得到兩個輪子）。也可以直接把圖片拖進右邊畫面。',
+  tire: '在<b>任一個輪胎</b>上點最上緣、最下緣，工具會算出<b>輪徑 D</b>。之後所有比例都用「幾個 D」表示，所以不需要知道圖片的真實尺寸。',
+  wheels: '從<b>畫面左邊</b>開始，點每個輪子的<b>正中心</b>（輪轂中間）。點完會出現一圈和輪徑一樣大的虛線圓，跟輪胎重疊就代表點準了。<br>淡藍色帶是市售四人座 UTV 的常見位置，只是參考。',
+  body: '依序點<b>車頂最高點、車頭最前端、車尾最後端</b>（車頭＝方向盤那一側）。車尾只算車身，<b>尾翼、行李架、備胎這類配件不算</b>。<br>淡藍色帶是市售車的常見範圍（依輪徑換算）；如果色帶跑到圖片外面，代表你的車和市售車差很多。',
+  seat: '點<b>前排座椅（靠方向盤那一排）的最上緣</b>，也就是頭枕頂端，側視圖裡一定看得到。工具會依一般賽車座椅的尺寸，把 <b>185 cm 的坐姿人形</b>放進座椅。<br>看一下人形：<b>背貼著椅背、臀部在坐墊上、腳在車內地板附近</b>。不對就<b>拖曳人形臀部的白色圓點</b>調整。<br>最後點<b>人形頭頂正上方的防滾籠下緣</b>。',
+  front: '換成<b>正前視圖</b>。先點一個輪胎的上下緣（算出 D），再點車身最左、最右端，算出全寬。',
+  angle: '選做。想像車子要開上一個斜坡：工具在兩端的輪胎外側各畫了一條<b>斜坡線</b>，它會一直貼著輪胎。<br><b>抓住斜線（線上任何位置或白色圓點都可以），往車身方向推</b>，推到斜線<b>剛好碰到車身</b>（保險桿、護板或車架）就放開，顯示的角度就是接近角／離去角，<b>角度越大越不容易卡住</b>。<br>推到垂直都沒碰到車身，會顯示 ≥ 90°，代表爬坡時輪胎先碰到。',
+  result: '每一項都列出來，<b>沒量的會顯示「未量測」</b>。工具只列出量測結果，要不要修改由你判斷。<br>比例都以<b>輪徑 D</b> 為單位：整台車等比例放大或縮小，這些數字<b>都不會變</b>。'
+};
+function renderSteps() {
+  const L = steps(), M = metrics();
+  let h = '';
+  L.forEach((st, i) => {
+    const done = stepDone(st), act = i === S.step, en = stepEnabled(i);
+    const cls = ['step', done && 'done', act && 'active', !en && 'dis'].filter(Boolean).join(' ');
+    let sub = '';
+    if (!act) {
+      if (st.id === 'load' && S.img.side) sub = S.wheels + ' 輪・' + S.name.side;
+      else if (st.id === 'result') { const w = M.filter(m => m.st === 'warn').length, n = M.filter(m => m.st === 'na').length; sub = `${w} 項注意・${n} 項未量測`; }
+      else if (st.id === 'angle' && S.angleSkip) sub = '已略過';
+      else if (st.pts) { const n = st.pts.filter(([k]) => S.P[k]).length; sub = done ? '完成' : n ? `${n}/${st.pts.length} 點` : ''; }
+    }
+    h += `<div class="${cls}" data-i="${i}"><div class="sh"><span class="num">${done ? '✓' : i+1}</span>
+      <span class="st">${st.t}${st.opt ? '<span class="opt">選做</span>' : ''}</span><span class="ss">${sub}</span></div>`;
+    if (act) h += `<div class="sb">${body(st, M)}</div>`;
+    h += '</div>';
+  });
+  $('#steps').innerHTML = h;
+  $('#steps').querySelectorAll('.sh').forEach(el => el.onclick = () => { const i = +el.parentElement.dataset.i; if (i !== S.step) goto(i); });
+  $('#steps').querySelectorAll('[data-act]').forEach(el => el.onclick = () => ACT[el.dataset.act](el));
+  const sel = $('#tireIn'); if (sel) sel.onchange = () => { S.tireIn = +sel.value; render(); };
+}
+function body(st, M) {
+  let h = `<p class="desc">${DESC[st.id]}</p>`;
+  if (st.id === 'load') {
+    h += `<div class="row"><span class="lab">輪數</span><div class="seg"><button data-act="w4" class="${S.wheels===4?'on':''}">四輪</button><button data-act="w6" class="${S.wheels===6?'on':''}">六輪</button></div></div>`;
+    h += `<div class="acts"><button class="btn pri" data-act="pickSide">${S.img.side ? '換一張圖' : '選擇圖片'}</button><button class="btn" data-act="sampleSide">用範例圖試試</button></div>`;
+    if (S.img.side) h += `<div class="acts"><span class="sp"></span><button class="btn pri" data-act="next">下一步 →</button></div>`;
+    return h;
+  }
+  if (st.id === 'result') {
+    h += M.map(resRow).join('');
+    h += `<div class="acts"><button class="btn pri" data-act="copy">複製結果文字</button><span class="hint">貼到問題清單或傳給研究者</span></div>`;
+    return h;
+  }
+  if (st.id === 'front' && !S.img.front) {
+    h += illo(st);
+    h += `<div class="acts"><button class="btn pri" data-act="pickFront">選擇正前視圖</button><button class="btn" data-act="sampleFront">用範例圖試試</button></div>`;
+    return h;
+  }
+  if (st.id === 'front') h += `<div class="row"><span class="lab">圖片</span><span class="ss">${S.name.front}</span><button class="btn sm ghost" data-act="pickFront">換圖</button></div>`;
+  h += illo(st);
+  const nx = st.pts.find(([k]) => !S.P[k]);
+  h += '<ul class="pts">' + st.pts.map(([k, t], i) =>
+    `<li class="${S.P[k] ? 'd' : nx && nx[0] === k ? 'n' : ''}"><i>${S.P[k] ? '✓' : i+1}</i>${t}</li>`).join('') + '</ul>';
+  if (st.id === 'tire' || st.id === 'front') {
+    const opts = [24,26,27,28,29,30,32,35].map(v => `<option value="${v}" ${v===S.tireIn?'selected':''}>${v} 吋</option>`).join('');
+    h += `<div class="row"><span class="lab">輪胎尺寸</span><select id="tireIn">${opts}</select></div>
+      <p class="hint">只用來換算 mm（頭部空間、全寬）。不確定就用 30 吋（市售 UTV 常見）。</p>`;
+  }
+  if (st.id === 'tire' && S.P.tt && S.P.tb) h += `<div class="fb"><span class="k">輪徑 D</span>　<span class="v">${Math.round(dist(S.P.tt,S.P.tb))} px</span>　<span class="k">＝ ${S.tireIn} 吋（${Math.round(Dmm())} mm）</span></div>`;
+  M.filter(m => m.step === st.id && m.st !== 'na').forEach(m => {
+    h += `<div class="fb ${m.st}"><span class="k">${m.label}</span>　<span class="v">${m.txt}</span>　<span class="s">${m.st==='ok'?'✓ ':m.st==='warn'?'! ':''}${m.note.split('　')[0]}</span></div>`;
+  });
+  const anyPt = st.pts.some(([k]) => S.P[k]);
+  h += `<div class="acts"><button class="btn sm" data-act="undo" ${anyPt?'':'disabled'}>上一點</button><button class="btn sm ghost" data-act="redo" ${anyPt?'':'disabled'}>重做這步</button><span class="sp"></span>`;
+  if (st.id === 'angle') h += `<button class="btn sm ghost" data-act="skip">略過</button>`;
+  h += `<button class="btn pri" data-act="next" ${stepDone(st)?'':'disabled'}>${st.id === 'angle' ? '看結果 →' : '下一步 →'}</button></div>`;
+  return h;
+}
+function resRow(m) {
+  const chip = { ok:'範圍內', warn:'注意', info:'參考', na:'未量測' }[m.st];
+  let bar = '';
+  if (m.bar) { const { v, lo, hi } = m.bar, pad = (hi - lo)*0.8, a = lo - pad, b = hi + pad, pc = x => (x - a)/(b - a)*100;
+    const pv = pc(v), edge = pv < 0 || pv > 100;
+    bar = `<div class="bar"><div class="rg" style="left:${pc(lo)}%;width:${pc(hi)-pc(lo)}%"></div><div class="dt ${edge?'edge':''}" style="left:${Math.max(0,Math.min(100,pv))}%"></div></div>`; }
+  return `<div class="res ${m.st}"><div class="rh"><span class="chip">${chip}</span><b>${m.label}</b><span class="v">${m.txt}</span></div>${bar}<div class="note">${m.note}${m.extra && m.st !== 'na' ? '<br>' + m.extra : ''}</div></div>`;
+}
+const ACT = {
+  w4: () => { S.wheels = 4; delete S.P.mc; render(); }, w6: () => { S.wheels = 6; render(); },
+  pickSide: () => pick('side'), pickFront: () => pick('front'),
+  sampleSide: () => sample('side'), sampleFront: () => sample('front'),
+  next, undo, redo,
+  skip: () => { S.angleSkip = true; delete S.P.apF; delete S.P.apR; S.rampDeg = {}; goto(steps().length - 1); },
+  copy: () => copyText()
+};
+
+/* ---------- 提示列 ---------- */
+function renderPrompt() {
+  const st = cur(), el = $('#prompt'); let lab = '下一步', txt = '', cnt = '', done = false;
+  if (st.id === 'load') txt = S.img.side ? '圖片已載入，按「下一步」開始量測' : '選擇<em>正側視圖</em>，或把圖片拖進畫面';
+  else if (st.id === 'result') { lab = '結果'; txt = '檢查每一項，再決定要不要修改'; done = true; }
+  else if (st.id === 'front' && !S.img.front) txt = '載入<em>正前視圖</em>';
+  else {
+    const i = st.pts.findIndex(([k]) => !S.P[k]);
+    if (st.id === 'angle') { lab = '操作'; txt = '抓住斜線（任何位置都可以），<em>往車身方向推</em>，推到<em>剛好碰到車身</em>就放開'; }
+    else if (i < 0) { done = true; lab = '完成'; txt = '這一步完成了。可以拖曳點來微調，或按「下一步」'; }
+    else { txt = `點「<em>${st.pts[i][1]}</em>」`; cnt = `${i+1} / ${st.pts.length}`; }
+  }
+  el.className = 'prompt' + (done ? ' done' : '');
+  el.innerHTML = `<span class="pl">${lab}</span><span class="pt">${txt}</span><span class="pc">${cnt}</span><span class="sp"></span>`;
+  // 空白提示
+  const v = S.view;
+  $('#empty').innerHTML = `<div><div class="big">${v === 'side' ? '把正側視圖拖進來' : '把正前視圖拖進來'}</div>或用下面的按鈕選擇檔案
+    <div class="btns"><button class="btn pri" id="e1">選擇圖片</button><button class="btn" id="e2">用範例圖試試</button></div></div>`;
+  $('#e1').onclick = () => pick(v); $('#e2').onclick = () => sample(v);
+  // 視圖切換（結果頁）
+  const vt = $('#vtabs');
+  if (st.id === 'result' && S.img.front) {
+    vt.innerHTML = `<div class="seg"><button class="${v==='side'?'on':''}" data-v="side">側視</button><button class="${v==='front'?'on':''}" data-v="front">前視</button></div>`;
+    vt.querySelectorAll('button').forEach(b => b.onclick = () => { S.view = b.dataset.v; if (!T()) fit(); render(); });
+  } else vt.innerHTML = '';
+  $('#hud').style.display = S.img[v] ? '' : 'none';
+}
+
+/* ---------- 複製 ---------- */
+function copyText() {
+  const M = metrics(), d = new Date(), pad = n => String(n).padStart(2,'0');
+  const ts = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const chip = { ok:'範圍內', warn:'注意', info:'參考', na:'未量測' };
+  const lines = [`UTV 比例檢查 v3｜受試者 ${$('#pid').value || '-'}｜${S.wheels} 輪｜${ts}`,
+    `側視圖：${S.name.side || '-'}　前視圖：${S.name.front || '-'}　輪胎假設 ${S.tireIn} 吋`, ''];
+  M.forEach(m => lines.push(`[${chip[m.st]}] ${m.label}：${m.txt}${m.st !== 'na' ? '（' + m.note.replace('　', '；') + '）' : ''}`));
+  const s = lines.join('\n');
+  (navigator.clipboard ? navigator.clipboard.writeText(s) : Promise.reject()).then(() => toast('已複製結果文字'), () => {
+    const ta = document.createElement('textarea'); ta.value = s; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('已複製結果文字'); });
+}
+
+/* ---------- 其他 ---------- */
+let tt = 0;
+function toast(s) { const el = $('#toast'); el.textContent = s; el.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('on'), 1400); }
+function render() { renderSteps(); renderPrompt(); draw(); }
+$('#reset').onclick = () => {
+  if (!confirmReset()) return;
+  Object.assign(S, { step:0, view:'side', img:{ side:null, front:null }, name:{ side:'', front:'' }, T:{ side:null, front:null }, P:{}, angleSkip:false, hipManual:false, rampDeg:{} });
+  render();
+};
+let armed = 0;
+function confirmReset() { // 不用 confirm()：第一次按顯示提示，3 秒內再按一次才清除
+  if (Date.now() - armed < 3000) { armed = 0; $('#reset').textContent = '全部重來'; return true; }
+  armed = Date.now(); $('#reset').textContent = '再按一次確認'; setTimeout(() => { $('#reset').textContent = '全部重來'; }, 3000); return false;
+}
+window.addEventListener('resize', resize);
+window.__S = S; window.__metrics = metrics; window.__rp = (l,h,p) => rampPush(l,h,p); window.__geo = () => geo(); window.__toS = p => toS(p);
+resize(); render();
+})();
+</script>
+</body>
+</html>

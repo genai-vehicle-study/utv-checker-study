@@ -117,7 +117,7 @@ async function testPage(browser, page) {
 
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'] });
 try {
-  for (const page of ['index.html', 'en.html']) await testPage(browser, page);
+  for (const page of ['v2/index.html', 'v2/en.html']) await testPage(browser, page);
   for (const page of ['v1/index.html', 'v1/en.html']) {
     console.log(`\n[${page}]`); const { p, errs, ctx } = await open(browser, page);
     check('舊版可載入', (await p.title()).length > 0 && errs.length === 0, errs.join(' | ')); await ctx.close();

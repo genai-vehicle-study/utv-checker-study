@@ -3,8 +3,8 @@
 把 AI 生成的 UTV 正側視圖疊在參數化參考模型上，檢查軸距、車頂、車頭車尾、雙軸間距、通過角與全寬是否合理。
 用於研究「設計者如何察覺 AI 生成載具概念中的錯誤」。
 
-- 中文版：`docs/index.html`
-- 英文版：`docs/en.html`
+- **v3（正式實驗使用）**：`docs/index.html`（原始檔 `src/v3/index.html`）
+- v2：`docs/v2/index.html`、`docs/v2/en.html`（`docs/en.html` 暫用 v2 英文版）
 - 舊版 v1（P1、P2 實驗使用，**永遠不要修改**）：`docs/v1/`
 
 目前版本見 `config.json`，畫面右下角與「複製結果文字」也會顯示版本號。
@@ -60,7 +60,8 @@ docs/                    建置結果，GitHub Pages 從這裡發佈（不要直
 ## 建置與測試
 
 ```bash
-python3 tools/build.py                 # 產生 docs/index.html、docs/en.html
+python3 tools/build.py                 # v2 → docs/v2/；v3 → docs/index.html
+node tests/v3.mjs                      # v3 自動測試
 cd tests && npm install && cd ..       # 第一次才需要（playwright-core、three@0.128.0）
 node tests/smoke.mjs                   # 約 2 分鐘；結果截圖在 tests/out/
 ```
