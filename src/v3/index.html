@@ -142,7 +142,7 @@ kbd{font:12px ui-monospace,monospace;background:var(--p3);border:1px solid var(-
 <body>
 <div class="app">
   <header>
-    <span class="brand">UTV 比例檢查</span><span class="tag" title="工具版本">v3.1.0</span>
+    <span class="brand">UTV 比例檢查</span><span class="tag" title="工具版本">v3.2.0</span>
     <span class="sp"></span>
     <label class="pid">受試者 <input id="pid" value="S01"></label>
     <button class="btn sm ghost" id="reset">全部重來</button>
@@ -178,8 +178,9 @@ const RANGE = { wb:[3.8,4.5], tan:[1.05,1.4], h:[2.25,2.8], oh:[0.47,0.6] };
 const SIT_MM = 965;          // 身高 185 cm 坐高（座面到頭頂）
 const SB_LEN = 780, SB_TILT = 15;   // 一般賽車座椅：椅背頂端到臀部約 78 cm、椅背後傾約 15°
 const HEAD_OK_MM = 50;       // 頭頂上方至少保留
-const W_MAX_MM = 1626;       // 64 吋
-const W_MIN_D = 1.9;         // 全寬下限（輪徑倍數）
+// 全寬：只能判斷「比例」，判斷不了實際吋數（64 吋級與寬體車的全寬÷輪徑都在 2.1–2.45，重疊）。
+// 市售 19 款四人座為 2.13–2.44 D；吋數以 30 吋輪胎估算，只列為參考。
+RANGE.w = [2.0, 2.5];
 const AC = '#5ab8ff', OK = '#45b98c', WA = '#f2a93b', NEU = 'rgba(232,234,239,.75)';
 
 /* ---------- 狀態 ---------- */
@@ -284,13 +285,12 @@ function metrics() {
 
   // 全寬
   if (S.img.front && P.ftt && P.ftb && P.fl && P.fr) {
-    const tp = dist(P.ftt, P.ftb), wd = Math.abs(P.fr[0]-P.fl[0])/tp, mm = wd*Dmm(), hiD = W_MAX_MM/Dmm();
-    const st = (mm > W_MAX_MM || wd < W_MIN_D) ? 'warn' : 'ok';
-    out.push({ id:'width', label:'全寬', step:'front', st, txt:`${(mm/25.4).toFixed(1)} 吋`,
-      note: (mm > W_MAX_MM ? '超過 64 吋（1,626 mm）上限' : wd < W_MIN_D ? `偏窄，市售約 ${W_MIN_D} D 以上` : '在範圍內')
-        + `　${Math.round(mm).toLocaleString('en-US')} mm・${wd.toFixed(2)} D`,
-      bar:{ v: wd, lo: W_MIN_D, hi: +hiD.toFixed(2) }, extra:`以輪胎 ${S.tireIn} 吋換算；上限 64 吋` });
-  } else out.push({ id:'width', label:'全寬', step:'front', st:'na', txt:'未量測', note:`範圍 ${W_MIN_D} D～64 吋` });
+    const tp = dist(P.ftt, P.ftb), wd = Math.abs(P.fr[0]-P.fl[0])/tp, mm = wd*Dmm();
+    const it = ratioItem('width', '全寬', wd, ...RANGE.w, '偏窄', '偏寬', 'front');
+    it.extra = `以 ${S.tireIn} 吋輪胎估算約 ${(mm/25.4).toFixed(1)} 吋（${Math.round(mm).toLocaleString('en-US')} mm），僅供參考；實際寬度依輪胎大小而定`;
+    it.inch = (mm/25.4).toFixed(1);
+    out.push(it);
+  } else out.push({ id:'width', label:'全寬', step:'front', st:'na', txt:'未量測', note:`範圍 ${RANGE.w[0]}–${RANGE.w[1]} D` });
 
   // 通過角
   const A = angles();
@@ -689,7 +689,7 @@ function sampleSide() {
   <text x="30" y="50" font-family="sans-serif" font-size="26" fill="#6b7078">範例圖（僅供練習操作）</text></svg>`;
 }
 function sampleFront() {
-  const G = 800, D = 240, cxm = 600, half = 1.95*D/2, tw = 100;
+  const G = 800, D = 240, cxm = 600, half = 2.2*D/2, tw = 100;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
   <rect width="1200" height="900" fill="#d8dbe0"/><rect y="${G}" width="1200" height="100" fill="#c9ccd2"/>
   <rect x="${cxm-half+6}" y="${G-D}" width="${tw}" height="${D}" rx="26" fill="#26282c"/>
@@ -868,7 +868,7 @@ function copyText() {
   const chip = { ok:'範圍內', warn:'注意', info:'參考', na:'未量測' };
   const lines = [`UTV 比例檢查 v3｜受試者 ${$('#pid').value || '-'}｜${S.wheels} 輪｜${ts}`,
     `側視圖：${S.name.side || '-'}　前視圖：${S.name.front || '-'}　輪胎假設 ${S.tireIn} 吋`, ''];
-  M.forEach(m => lines.push(`[${chip[m.st]}] ${m.label}：${m.txt}${m.st !== 'na' ? '（' + m.note.replace('　', '；') + '）' : ''}`));
+  M.forEach(m => lines.push(`[${chip[m.st]}] ${m.label}：${m.txt}${m.st !== 'na' ? '（' + m.note.replace('　', '；') + (m.id === 'width' ? `；以 30 吋輪胎估算約 ${m.inch} 吋` : '') + '）' : ''}`));
   const s = lines.join('\n');
   (navigator.clipboard ? navigator.clipboard.writeText(s) : Promise.reject()).then(() => toast('已複製結果文字'), () => {
     const ta = document.createElement('textarea'); ta.value = s; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('已複製結果文字'); });
