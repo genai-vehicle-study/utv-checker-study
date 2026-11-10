@@ -142,7 +142,7 @@ kbd{font:12px ui-monospace,monospace;background:var(--p3);border:1px solid var(-
 <body>
 <div class="app">
   <header>
-    <span class="brand">UTV 比例檢查</span><span class="tag" title="工具版本">v3.0.0</span>
+    <span class="brand">UTV 比例檢查</span><span class="tag" title="工具版本">v3.1.0</span>
     <span class="sp"></span>
     <label class="pid">受試者 <input id="pid" value="S01"></label>
     <button class="btn sm ghost" id="reset">全部重來</button>
@@ -173,7 +173,8 @@ kbd{font:12px ui-monospace,monospace;background:var(--p3);border:1px solid var(-
 const $ = s => document.querySelector(s);
 
 /* ---------- 參考值 ---------- */
-const RANGE = { wb:[3.8,4.5], tan:[1.05,1.4], h:[2.5,2.8], oh:[0.5,0.65] };
+// 參考範圍：依 19 款 2024–2027 四人座 UTV 原廠規格中 30–31 吋輪胎車款校正（2026-11-11）
+const RANGE = { wb:[3.8,4.5], tan:[1.05,1.4], h:[2.25,2.8], oh:[0.47,0.6] };
 const SIT_MM = 965;          // 身高 185 cm 坐高（座面到頭頂）
 const SB_LEN = 780, SB_TILT = 15;   // 一般賽車座椅：椅背頂端到臀部約 78 cm、椅背後傾約 15°
 const HEAD_OK_MM = 50;       // 頭頂上方至少保留
@@ -183,7 +184,8 @@ const AC = '#5ab8ff', OK = '#45b98c', WA = '#f2a93b', NEU = 'rgba(232,234,239,.7
 
 /* ---------- 狀態 ---------- */
 const S = {
-  rampDeg: {}, wheels: 4, tireIn: 30, step: 0, view: 'side',
+  rampDeg: {}, wheels: 4, tireIn: 30,   // 輪胎一律假設 30 吋（市售四人座 UTV 常見），受試者不需選擇
+  step: 0, view: 'side',
   img: { side: null, front: null }, name: { side: '', front: '' },
   T: { side: null, front: null }, P: {}, angleSkip: false
 };
@@ -673,7 +675,7 @@ function sample(view) {
 }
 function sampleSide() {
   const G = 780, D = 240, r = 120, f = 330, rr = f + 4.1*D, six = S.wheels === 6, mid = f + 4.0*D, rc6 = mid + 1.2*D;
-  const back = six ? rc6 : rr, roofY = G - 2.6*D, nose = f - 0.58*D, tail = back + 0.6*D;
+  const back = six ? rc6 : rr, roofY = G - 2.6*D, nose = f - 0.58*D, tail = back + 0.55*D;
   const wheel = x => `<circle cx="${x}" cy="${G-r}" r="${r}" fill="#26282c"/><circle cx="${x}" cy="${G-r}" r="${r*0.58}" fill="#9aa0a8"/><circle cx="${x}" cy="${G-r}" r="${r*0.16}" fill="#55595f"/>`;
   const Wd = six ? 2000 : 1700;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${Wd}" height="900" viewBox="0 0 ${Wd} 900">
@@ -777,7 +779,6 @@ function renderSteps() {
   $('#steps').innerHTML = h;
   $('#steps').querySelectorAll('.sh').forEach(el => el.onclick = () => { const i = +el.parentElement.dataset.i; if (i !== S.step) goto(i); });
   $('#steps').querySelectorAll('[data-act]').forEach(el => el.onclick = () => ACT[el.dataset.act](el));
-  const sel = $('#tireIn'); if (sel) sel.onchange = () => { S.tireIn = +sel.value; render(); };
 }
 function body(st, M) {
   let h = `<p class="desc">${DESC[st.id]}</p>`;
@@ -803,9 +804,7 @@ function body(st, M) {
   h += '<ul class="pts">' + st.pts.map(([k, t], i) =>
     `<li class="${S.P[k] ? 'd' : nx && nx[0] === k ? 'n' : ''}"><i>${S.P[k] ? '✓' : i+1}</i>${t}</li>`).join('') + '</ul>';
   if (st.id === 'tire' || st.id === 'front') {
-    const opts = [24,26,27,28,29,30,32,35].map(v => `<option value="${v}" ${v===S.tireIn?'selected':''}>${v} 吋</option>`).join('');
-    h += `<div class="row"><span class="lab">輪胎尺寸</span><select id="tireIn">${opts}</select></div>
-      <p class="hint">只用來換算 mm（頭部空間、全寬）。不確定就用 30 吋（市售 UTV 常見）。</p>`;
+    h += `<p class="hint">輪胎一律以 30 吋（市售四人座 UTV 常見尺寸）換算 mm（頭部空間、全寬）。</p>`;
   }
   if (st.id === 'tire' && S.P.tt && S.P.tb) h += `<div class="fb"><span class="k">輪徑 D</span>　<span class="v">${Math.round(dist(S.P.tt,S.P.tb))} px</span>　<span class="k">＝ ${S.tireIn} 吋（${Math.round(Dmm())} mm）</span></div>`;
   M.filter(m => m.step === st.id && m.st !== 'na').forEach(m => {

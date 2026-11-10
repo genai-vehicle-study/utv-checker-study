@@ -13,7 +13,7 @@ let fail = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); i
 await p.click('[data-act=sampleSide]'); await p.waitForTimeout(800);
 await clickI(330,541); await clickI(330,779);
 await p.click('[data-act=next]'); await clickI(330,660); await clickI(1314,660);
-await p.click('[data-act=next]'); await clickI(700,149); await clickI(192,590); await clickI(1457,560);
+await p.click('[data-act=next]'); await clickI(700,149); await clickI(192,590); await clickI(1445,560);
 await p.click('[data-act=next]'); await clickI(980,296); await clickI(963,165);
 await p.click('[data-act=next]'); await p.click('[data-act=sampleFront]'); await p.waitForTimeout(700);
 await clickI(422,561); await clickI(422,799); await clickI(367,600); await clickI(833,600);
@@ -24,7 +24,7 @@ const M = Object.fromEntries((await p.evaluate(() => window.__metrics())).map(m 
 const num = m => parseFloat(m.txt);
 ok(Math.abs(num(M.wb) - 4.1) < 0.1, `軸距 ${M.wb.txt}（範例 4.1 D）`);
 ok(Math.abs(num(M.roof) - 2.6) < 0.1, `車頂 ${M.roof.txt}（範例 2.6 D）`);
-ok(Math.abs(num(M.nose) - 0.58) < 0.05 && Math.abs(num(M.tail) - 0.6) < 0.05, `懸伸 ${M.nose.txt}／${M.tail.txt}`);
+ok(Math.abs(num(M.nose) - 0.58) < 0.05 && Math.abs(num(M.tail) - 0.55) < 0.05, `懸伸 ${M.nose.txt}／${M.tail.txt}`);
 ok(M.head.st === 'ok', `頭部空間 ${M.head.txt}`);
 ok(Math.abs(num(M.width) - 58.5) < 1.5, `全寬 ${M.width.txt}（範例 1.95 D ≈ 58.5 吋）`);
 ok(M.angle.st === 'info' && /\d+°／\d+°/.test(M.angle.txt), `通過角 ${M.angle.txt}`);
